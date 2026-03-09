@@ -6,26 +6,44 @@ const User = require('../models/User');
 const router = express.Router();
 
 // ============================================
-// REGISTRO DE USUARIO (SIN VERIFICACIÓN)
+// MIDDLEWARE: Verificar Token
+// ============================================
+const verificarToken = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).json({ error: 'No autorizado - No hay token' });
+    }
+    
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+        return res.status(401).json({ error: 'No autorizado - Token vacío' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.usuarioId = decoded.id;
+        next();
+    } catch (error) {
+        return res.status(401).json({ error: 'Token inválido' });
+    }
+};
+
+// ============================================
+// REGISTRO
 // ============================================
 router.post('/register', async (req, res) => {
     try {
         const { nombre, correo, telefono, direccion, contraseña } = req.body;
 
-        // Validar campos obligatorios
-        if (!nombre || !correo || !correo.includes('@') || !contraseña) {
-            return res.status(400).json({ error: ' Faltan campos obligatorios' });
-        }
-
-        // Verificar si el correo ya está registrado
+        // Verificar si el usuario ya existe
         const existeUsuario = await User.findOne({ correo });
         if (existeUsuario) {
-            return res.status(400).json({ error: ' El correo ya está registrado' });
+            return res.status(400).json({ error: 'El correo ya está registrado' });
         }
 
         // Encriptar contraseña
         const salt = await bcrypt.genSalt(10);
-        const contraseñaEncriptada = await bcrypt.hash(contraseña, salt);
+        const contraseñaHash = await bcrypt.hash(contraseña, salt);
 
         // Crear usuario
         const nuevoUsuario = new User({
@@ -33,15 +51,14 @@ router.post('/register', async (req, res) => {
             correo,
             telefono,
             direccion,
-            contraseña: contraseñaEncriptada,
-            role: correo === 'admin@luxe.com' ? 'admin' : 'cliente'
+            contraseña: contraseñaHash
         });
 
         await nuevoUsuario.save();
 
         // Generar token
         const token = jwt.sign(
-            { id: nuevoUsuario._id, role: nuevoUsuario.role },
+            { id: nuevoUsuario._id },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
@@ -52,81 +69,68 @@ router.post('/register', async (req, res) => {
                 id: nuevoUsuario._id,
                 nombre: nuevoUsuario.nombre,
                 correo: nuevoUsuario.correo,
-                role: nuevoUsuario.role,
-                direccion: nuevoUsuario.direccion || ''
+                role: nuevoUsuario.role
             }
         });
 
     } catch (error) {
         console.error('Error en registro:', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
+        res.status(500).json({ error: 'Error al registrar usuario' });
     }
 });
 
 // ============================================
-// LOGIN (SOLO VALIDACIÓN BÁSICA)
+// LOGIN
 // ============================================
 router.post('/login', async (req, res) => {
     try {
         const { correo, contraseña } = req.body;
 
-        // Buscar usuario por correo
+        // Buscar usuario
         const usuario = await User.findOne({ correo });
-
-        // Validar existencia
         if (!usuario) {
-            return res.status(401).json({ error: ' Correo no registrado' });
+            return res.status(400).json({ error: 'Credenciales inválidas' });
         }
 
-        // Validar contraseña
+        // Verificar contraseña
         const contraseñaValida = await bcrypt.compare(contraseña, usuario.contraseña);
         if (!contraseñaValida) {
-            return res.status(401).json({ error: 'Contraseña incorrecta' });
+            return res.status(400).json({ error: 'Credenciales inválidas' });
         }
 
         // Generar token
         const token = jwt.sign(
-            { id: usuario._id, role: usuario.role },
+            { id: usuario._id },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
 
-        // Respuesta exitosa
         res.json({
             token,
             user: {
                 id: usuario._id,
                 nombre: usuario.nombre,
                 correo: usuario.correo,
-                role: usuario.role,
-                direccion: usuario.direccion || ''
+                role: usuario.role
             }
         });
 
     } catch (error) {
         console.error('Error en login:', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
+        res.status(500).json({ error: 'Error al iniciar sesión' });
     }
 });
 
 // ============================================
-// RUTA PARA VER TODOS LOS USUARIOS (solo pruebas)
+// OBTENER DATOS DEL USUARIO ACTUAL
 // ============================================
-router.get('/usuarios', async (req, res) => {
-    try {
-        const usuarios = await User.find().select('-contraseña');
-        res.json(usuarios);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
 router.get('/me', verificarToken, async (req, res) => {
     try {
-        const user = await User.findById(req.usuarioId).select('-contraseña');
-        res.json(user);
+        const usuario = await User.findById(req.usuarioId).select('-contraseña');
+        res.json(usuario);
     } catch (error) {
-        res.status(500).json({ error: 'Error al obtener usuario' });
+        console.error('Error al obtener usuario:', error);
+        res.status(500).json({ error: 'Error al obtener datos del usuario' });
     }
 });
 
