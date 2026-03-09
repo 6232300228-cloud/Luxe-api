@@ -21,7 +21,7 @@ router.get('/google/callback',
             res.redirect(`https://luxecollection.org/login.html?token=${token}`);
         } catch (error) {
             console.error('Error en callback de Google:', error);
-            res.redirect('https://luxecollection.org/login?error=server');
+            res.redirect('https://luxecollection.org/login.html?error=server');
         }
     }
 );
