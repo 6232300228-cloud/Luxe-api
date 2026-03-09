@@ -5,13 +5,16 @@ require('dotenv').config();
 
 const app = express();
 
-// Configurar CORS
-// Configurar CORS para producción y local
+// Middleware para parsear JSON
+app.use(express.json());
+
+// Configurar CORS actualizado
 app.use(cors({
     origin: [
-        'https://luxecollection.org',        // Tu web real
-        'https://www.luxecollection.org',    // Tu web con www
-        'http://127.0.0.1:5500',             // Para que sigas probando en VS Code
+        'https://luxecollection.org',
+        'https://www.luxecollection.org', 
+        'https://luxe-api-frr5.onrender.com',
+        'http://127.0.0.1:5500',
         'http://localhost:5500'
     ],
     credentials: true
@@ -43,7 +46,12 @@ app.get('/', (req, res) => {
     res.json({ mensaje: 'API de Luxe funcionando 🚀' });
 });
 
+// Ruta de prueba para productos (para verificar que funciona)
+app.get('/api/test', (req, res) => {
+    res.json({ mensaje: 'API de productos funcionando', rutas: ['/api/products', '/api/auth', '/api/cart', '/api/orders'] });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
 });
