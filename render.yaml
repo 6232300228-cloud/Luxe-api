@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: luxe-backend
+    runtime: node
+    repo: https://github.com/Valeria/Luxe-api  # CAMBIA ESTO DESPUÉS
+    plan: free
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: NODE_ENV
+        value: production
+    buildCommand: npm install
+    startCommand: npm start
