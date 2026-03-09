@@ -8,7 +8,7 @@ router.get('/google', passport.authenticate('google', {
 }));
 
 router.get('/google/callback',
-    passport.authenticate('google', { session: false, failureRedirect: 'https://luxecollection.org/login?error=google' }),
+    passport.authenticate('google', { session: false, failureRedirect: 'https://luxecollection.org/login.html?error=google' }),
     (req, res) => {
         try {
             const token = jwt.sign(
@@ -17,8 +17,8 @@ router.get('/google/callback',
                 { expiresIn: '7d' }
             );
 
-            // ✅ CAMBIADO: redirige a login.html con el token
-            res.redirect(`https://luxecollection.org/login.html?token=${token}`);
+            // ✅ NUEVO: Redirige DIRECTAMENTE al index.html
+            res.redirect(`https://luxecollection.org/index.html?token=${token}`);
         } catch (error) {
             console.error('Error en callback de Google:', error);
             res.redirect('https://luxecollection.org/login.html?error=server');
