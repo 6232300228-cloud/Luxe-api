@@ -17,7 +17,8 @@ router.get('/google/callback',
                 { expiresIn: '7d' }
             );
 
-            res.redirect(`https://luxecollection.org/auth/google-success?token=${token}`);
+            // ✅ CAMBIADO: redirige a login.html con el token
+            res.redirect(`https://luxecollection.org/login?token=${token}`);
         } catch (error) {
             console.error('Error en callback de Google:', error);
             res.redirect('https://luxecollection.org/login?error=server');
