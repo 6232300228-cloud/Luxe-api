@@ -20,6 +20,23 @@ app.use(cors({
     credentials: true
 }));
 
+const session = require('express-session');
+const passport = require('./config/passport');
+
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: process.env.NODE_ENV === 'production' }
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Importar y usar rutas de Google
+const googleAuthRoutes = require('./routes/googleAuth');
+app.use('/api/auth', googleAuthRoutes);
+
 // Conectar a MongoDB
 console.log('🔌 Conectando a MongoDB...');
 mongoose.connect(process.env.MONGODB_URI)

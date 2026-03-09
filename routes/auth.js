@@ -121,4 +121,13 @@ router.get('/usuarios', async (req, res) => {
     }
 });
 
+router.get('/me', verificarToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.usuarioId).select('-contraseña');
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener usuario' });
+    }
+});
+
 module.exports = router;
