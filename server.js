@@ -1,82 +1,51 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
+const express = require("express");
+const cors = require("cors");
+
+const { MercadoPagoConfig, Preference } = require("mercadopago");
 
 const app = express();
 
-// Middleware para parsear JSON
+app.use(cors());
 app.use(express.json());
 
-// Configurar CORS actualizado
-app.use(cors({
-    origin: [
-        'https://luxecollection.org',
-        'https://www.luxecollection.org', 
-        'https://luxe-api-frr5.onrender.com',
-        'http://127.0.0.1:5500',
-        'http://localhost:5500'
-    ],
-    credentials: true
-}));
+// CONFIGURAR MERCADO PAGO
+const client = new MercadoPagoConfig({
+  accessToken: "APP_USR-5562521962692930-030522-9080c61c1567cf8b93f52eb8a9dfa477-3247325848"
+});
 
-const session = require('express-session');
-const passport = require('./config/passport');
+// RUTA PARA CREAR EL PAGO
+app.post("/crear-preferencia", async (req, res) => {
 
-app.use(session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: process.env.NODE_ENV === 'production' }
-}));
+  const carrito = req.body.items;
 
-app.use(passport.initialize());
-app.use(passport.session());
+  const items = carrito.map(producto => ({
+    title: producto.nombre,
+    quantity: producto.cantidad || 1,
+    unit_price: Number(producto.precio),
+    currency_id: "MXN"
+  }));
 
-// Importar y usar rutas de Google
-const googleAuthRoutes = require('./routes/googleAuth');
-app.use('/api/auth', googleAuthRoutes);
+  try {
 
-// Conectar a MongoDB
-console.log('🔌 Conectando a MongoDB...');
-mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('✅ Conectado a MongoDB Atlas'))
-    .catch(err => {
-        console.error('❌ Error conectando a MongoDB:');
-        console.error(err);
+    const preference = new Preference(client);
+
+    const result = await preference.create({
+      body: {
+        items: items
+      }
     });
 
-// Importar rutas
-const authRoutes = require('./routes/auth');
-const productRoutes = require('./routes/products');
-const cartRoutes = require('./routes/cart');
-const orderRoutes = require('./routes/orders');
+    res.json({
+      init_point: result.init_point
+    });
 
-// Usar rutas
-app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/orders', orderRoutes);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send("Error al crear pago");
+  }
 
-// Ruta de prueba
-app.get('/', (req, res) => {
-    res.json({ mensaje: 'API de Luxe funcionando 🚀' });
 });
 
-// Ruta de prueba para productos (para verificar que funciona)
-app.get('/api/test', (req, res) => {
-    res.json({ mensaje: 'API de productos funcionando', rutas: ['/api/products', '/api/auth', '/api/cart', '/api/orders'] });
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-});
-
-// Manejo de errores no capturados
-process.on('uncaughtException', (err) => {
-    console.error('❌ Error no capturado:', err);
-});
-process.on('unhandledRejection', (err) => {
-    console.error('❌ Promesa rechazada:', err);
+app.listen(3000, () => {
+  console.log("Servidor corriendo en puerto 3000");
 });
