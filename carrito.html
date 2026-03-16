@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Carrito - Luxe</title>
+<link rel="stylesheet" href="css/style.css?v=20250313">
+</head>
+
+<body>
+
+<header class="header">
+  <div class="header-left">
+
+    <div class="menu-hamburger" onclick="toggleMenu()">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+
+    <a href="index.html" class="logo-link">
+      <img src="img/logo.png" alt="Logo Luxe" class="logo">
+      <div class="logo-text-group">
+        <span class="slogan-minimal">Tu destino de belleza</span>
+      </div>
+    </a>
+
+  </div>
+
+  <div class="header-right icons">
+    <a href="favoritos.html">
+      <img src="img/corazon.png" class="header-icon"> 
+      <span id="fav-count">0</span>
+    </a>
+
+    <a href="login.html" id="login-btn">
+      <img src="img/usuario.png" class="header-icon"> Iniciar sesión
+    </a>
+  </div>
+</header>
+
+<nav id="side-menu" class="side-nav">
+  <span class="close-btn" onclick="toggleMenu()">&times;</span>
+
+  <div class="menu-section">
+    <h3 style="color:#ff4d6d;padding-left:20px;">Menú Principal</h3>
+    <a href="nosotros.html">Sobre Nosotros</a>
+    <a href="#">Lo más nuevo</a>
+    <a href="#">Ofertas</a>
+  </div>
+</nav>
+
+<main class="container cart-page-wrapper">
+
+<section class="cart-main-content">
+
+<h2 style="color:#ff4d6d;margin-left:20px;">
+Tu Carrito
+</h2>
+
+<section class="products" id="cart-items"></section>
+
+</section>
+
+<aside class="cart-sidebar">
+
+<div class="card summary-card" style="padding:20px;margin-bottom:20px;">
+
+<div id="shipping-message" class="shipping-box"></div>
+
+<h2 id="total" style="font-size:24px;margin-top:0;">
+Total: $0.00
+</h2>
+
+<div id="btn-pagar-container">
+
+
+
+Pagar con Mercado Pago
+
+</button>
+
+</div>
+
+</div>
+
+<div class="sugerencias-sidebar" style="background:white;padding:20px;border-radius:18px;box-shadow:0px 4px 10px rgba(0,0,0,0.1);">
+
+<h3 style="color:#ff4d6d;font-size:18px;margin-top:0;">
+¡Completa tu look!
+</h3>
+
+<p style="font-size:13px;color:#888;">
+Agregados recientemente:
+</p>
+
+<div id="productos-sugeridos"></div>
+
+</div>
+
+</aside>
+
+</main>
+
+<footer class="footer-luxe">
+
+<div class="footer-container">
+
+<div class="footer-column">
+
+<img src="img/logo.png" class="footer-logo">
+
+<p class="footer-description">
+Realzando tu belleza natural con productos de alta gama.
+</p>
+
+</div>
+
+</div>
+
+<div class="footer-bottom">
+
+<p>
+© 2026 LUXE Beauty Shop
+</p>
+
+</div>
+
+</footer>
+
+<script src="js/carrito.js?v=20250313"></script>
+<script src="js/user.js?v=20250313"></script>
+
+<script>
+
+async function pagarConMercadoPago(){
+
+const carrito = JSON.parse(localStorage.getItem("carrito")) || [];
+
+if(carrito.length === 0){
+alert("Tu carrito está vacío");
+return;
+}
+
+try{
+
+const response = await fetch("http://localhost:3000/crear-preferencia",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+items:carrito
+})
+
+});
+
+const data = await response.json();
+
+if(data.init_point){
+
+window.location.href = data.init_point;
+
+}else{
+
+alert("Error al generar el pago");
+
+}
+
+}catch(error){
+
+console.error(error);
+
+alert("No se pudo conectar con el servidor");
+
+}
+
+}
+
+</script>
+
+</body>
+</html>
