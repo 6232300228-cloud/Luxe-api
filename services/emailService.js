@@ -1,44 +1,70 @@
-// services/emailService.js
-const sgMail = require('@sendgrid/mail');
+// /services/emailService.js - CONFIGURACIÓN COMPLETA
+const nodemailer = require('nodemailer');
 
-// Configurar SendGrid con tu API Key
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+// Configuración del transporter (USANDO GMAIL)
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER, // Tu correo de Gmail
+        pass: process.env.EMAIL_PASS  // Tu contraseña de aplicación de Gmail
+    }
+});
 
-const sendVerificationEmail = async (email, nombre, token) => {
-    try {
-        const verificationLink = `https://luxe-api-frr5.onrender.com/api/auth/verify-email?token=${token}`;
-
-        const msg = {
-            to: email,
-            from: {
-                email: 'tiendaluxeedb@gmail.com', // El que verificaste
-                name: 'Luxe Collection'
-            },
-            subject: 'Confirma tu cuenta en Luxe Collection ✨',
-            html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ffc8dd; border-radius: 10px;">
-                    <h1 style="color: #ff4d6d;">¡Hola ${nombre}!</h1>
-                    <p>Gracias por registrarte en Luxe Collection. Por favor confirma tu correo:</p>
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="${verificationLink}" 
-                           style="background-color: #ff4d6d; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; display: inline-block;">
-                            Confirmar cuenta
-                        </a>
+// Función para enviar correo de verificación
+const sendVerificationEmail = async (correo, nombre, token) => {
+    const verificationLink = `https://luxe-api-frr5.onrender.com/api/auth/verify-email?token=${token}`;
+    
+    const mailOptions = {
+        from: '"Luxe Collection" <${process.env.EMAIL_USER}>',
+        to: correo,
+        subject: 'Verifica tu correo electrónico - Luxe Collection',
+        html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px;">
+                <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h1 style="color: #ff4d6d; margin: 0;">Luxe Collection</h1>
+                        <p style="color: #666; font-size: 16px;">Verificación de Email</p>
                     </div>
-                    <p>Si el botón no funciona, copia y pega este enlace:<br>
-                    <span style="color: #ff4d6d;">${verificationLink}</span></p>
-                    <hr style="border: none; border-top: 1px solid #ffc8dd; margin: 20px 0;">
-                    <p style="font-size: 12px; color: #999; text-align: center;">© 2026 Luxe Collection. Todos los derechos reservados.</p>
+                    
+                    <div style="color: #333; line-height: 1.6;">
+                        <p>Hola <strong>${nombre}</strong>,</p>
+                        <p>Gracias por registrarte en Luxe Collection. Para completar tu registro y poder iniciar sesión, por favor verifica tu correo electrónico haciendo clic en el siguiente botón:</p>
+                        
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="${verificationLink}" style="background: #ff4d6d; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block;">Verificar mi correo</a>
+                        </div>
+                        
+                        <p>Si el botón no funciona, copia y pega el siguiente enlace en tu navegador:</p>
+                        <p style="background: #f8f9fa; padding: 10px; border-radius: 5px; word-break: break-all; font-size: 14px;">${verificationLink}</p>
+                        
+                        <p style="margin-top: 30px;">Este enlace expirará en <strong>24 horas</strong>.</p>
+                        
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                        
+                        <p style="color: #999; font-size: 14px; text-align: center;">
+                            Si no creaste una cuenta en Luxe Collection, ignora este correo.<br>
+                            &copy; 2026 Luxe Collection. Todos los derechos reservados.
+                        </p>
+                    </div>
                 </div>
-            `
-        };
+            </body>
+            </html>
+        `
+    };
 
-        await sgMail.send(msg);
-        console.log(`✅ Correo enviado a ${email}`);
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log(`✅ Correo de verificación enviado a: ${correo}`);
         return true;
     } catch (error) {
-        console.error('❌ Error:', error.response?.body || error);
-        return false;
+        console.error('❌ Error enviando correo:', error);
+        throw error;
     }
 };
 

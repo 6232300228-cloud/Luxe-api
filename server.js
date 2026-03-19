@@ -69,7 +69,19 @@ app.get('/api/auth/google', (req, res) => {
 });
 
 // ============================================
-// 🟢🟢🟢 RUTA DE CALLBACK DE GOOGLE (¡LA QUE FALTABA!) 🟢🟢🟢
+// 🟢 RUTA DE GOOGLE - AQUÍ VAN LOS SCOPES 🟢
+// ============================================
+app.get('/api/auth/google', 
+    passport.authenticate('google', { 
+        scope: ['profile', 'email'], // ✅ LOS SCOPES VAN AQUÍ
+        accessType: 'offline',
+        prompt: 'consent',
+        session: false
+    })
+);
+
+// ============================================
+// 🟢 CALLBACK DE GOOGLE
 // ============================================
 app.get('/auth/google/callback', 
     passport.authenticate('google', { 
@@ -77,15 +89,11 @@ app.get('/auth/google/callback',
         failureRedirect: 'https://luxecollection.org/login.html?error=google' 
     }),
     (req, res) => {
-        // ¡Éxito! El token viene de passport.js
         const token = req.user.token;
-        console.log('✅ Login con Google exitoso para:', req.user.correo);
-        
-        // Redirigir al frontend con el token
+        console.log('✅ Login con Google exitoso:', req.user.correo);
         res.redirect(`https://luxecollection.org/login.html?token=${token}`);
     }
 );
-
 // ============================================
 // RUTAS DE MERCADO PAGO
 // ============================================
