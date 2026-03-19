@@ -1,9 +1,9 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto'); // 🆕 Para generar tokens únicos
+const crypto = require('crypto');
 const User = require('../models/User');
-const { sendVerificationEmail } = require('../services/emailService'); // 🆕
+const { sendVerificationEmail } = require('../services/emailService');
 
 const router = express.Router();
 
@@ -31,11 +31,16 @@ const verificarToken = (req, res, next) => {
 };
 
 // ============================================
-// REGISTRO CON VERIFICACIÓN DE EMAIL 🆕
+// REGISTRO CON VERIFICACIÓN DE EMAIL
 // ============================================
 router.post('/register', async (req, res) => {
     try {
         const { nombre, correo, telefono, direccion, contraseña } = req.body;
+
+        // Verificar campos requeridos
+        if (!nombre || !correo || !contraseña) {
+            return res.status(400).json({ error: 'Nombre, correo y contraseña son requeridos' });
+        }
 
         // Verificar si el usuario ya existe
         const existeUsuario = await User.findOne({ correo });
@@ -47,48 +52,42 @@ router.post('/register', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const contraseñaHash = await bcrypt.hash(contraseña, salt);
 
-        // 🆕 Generar token de verificación
+        // Generar token de verificación
         const verificationToken = crypto.randomBytes(32).toString('hex');
         const tokenExpires = new Date();
         tokenExpires.setHours(tokenExpires.getHours() + 24); // Válido por 24 horas
 
-        // Crear usuario con campos de verificación
+        // Crear usuario
         const nuevoUsuario = new User({
             nombre,
             correo,
-            telefono,
-            direccion,
+            telefono: telefono || '',
+            direccion: direccion || '',
             contraseña: contraseñaHash,
             verified: false,
             verificationToken,
-            tokenExpires
+            tokenExpires,
+            fechaRegistro: new Date()
         });
 
         await nuevoUsuario.save();
+        console.log('✅ Usuario registrado:', correo);
 
-        // 🆕 Enviar correo de verificación
-        try {
-            await sendVerificationEmail(correo, nombre, verificationToken);
-            console.log(`✅ Correo de verificación enviado a ${correo}`);
-        } catch (emailError) {
-            console.error('❌ Error enviando correo:', emailError);
-            // El usuario se creó pero el correo no se envió
-            return res.status(201).json({ 
-                mensaje: 'Usuario creado, pero hubo un problema enviando el correo. Contacta a soporte.',
-                requiereVerificacion: true
-            });
+        // Enviar correo de verificación (solo si existe el servicio)
+        if (typeof sendVerificationEmail === 'function') {
+            try {
+                await sendVerificationEmail(correo, nombre, verificationToken);
+                console.log(`✅ Correo de verificación enviado a ${correo}`);
+            } catch (emailError) {
+                console.error('❌ Error enviando correo:', emailError);
+                // No fallamos el registro si el correo no se envía
+            }
         }
 
-        // Generar token (opcional: no generar hasta que verifique)
-        const token = jwt.sign(
-            { id: nuevoUsuario._id },
-            process.env.JWT_SECRET,
-            { expiresIn: '7d' }
-        );
-
-        res.json({
+        // Importante: NO generamos token JWT hasta que verifique el email
+        res.status(201).json({
             mensaje: '✅ Registro exitoso. Por favor verifica tu correo electrónico.',
-            token,
+            requiereVerificacion: true,
             user: {
                 id: nuevoUsuario._id,
                 nombre: nuevoUsuario.nombre,
@@ -105,11 +104,15 @@ router.post('/register', async (req, res) => {
 });
 
 // ============================================
-// 🆕 VERIFICAR EMAIL
+// VERIFICAR EMAIL
 // ============================================
 router.get('/verify-email', async (req, res) => {
     try {
         const { token } = req.query;
+
+        if (!token) {
+            return res.status(400).json({ error: 'Token requerido' });
+        }
 
         // Buscar usuario con ese token
         const usuario = await User.findOne({ 
@@ -129,22 +132,29 @@ router.get('/verify-email', async (req, res) => {
         usuario.tokenExpires = undefined;
         await usuario.save();
 
+        console.log('✅ Email verificado:', usuario.correo);
+
         // Respuesta HTML para mejor experiencia
         res.send(`
             <!DOCTYPE html>
             <html>
             <head>
                 <title>Email Verificado - Luxe Collection</title>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <style>
-                    body { font-family: Arial; text-align: center; padding: 50px; background: #fff5f7; }
-                    .container { background: white; padding: 40px; border-radius: 20px; max-width: 500px; margin: 0 auto; }
-                    h1 { color: #ff4d6d; }
-                    .btn { background: #ff4d6d; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; display: inline-block; margin-top: 20px; }
+                    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #fff5f7; margin: 0; }
+                    .container { background: white; padding: 30px 20px; border-radius: 20px; max-width: 500px; margin: 20px auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                    h1 { color: #ff4d6d; font-size: 24px; }
+                    p { color: #333; line-height: 1.6; }
+                    .btn { background: #ff4d6d; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; display: inline-block; margin-top: 20px; font-weight: bold; }
+                    .btn:hover { background: #ff3355; }
                 </style>
             </head>
             <body>
                 <div class="container">
                     <h1>✅ ¡Email Verificado!</h1>
+                    <p>Hola <strong>${usuario.nombre}</strong>,</p>
                     <p>Tu cuenta ha sido verificada exitosamente.</p>
                     <p>Ya puedes iniciar sesión en Luxe Collection.</p>
                     <a href="https://luxecollection.org/login.html" class="btn">Ir a Iniciar Sesión</a>
@@ -160,37 +170,67 @@ router.get('/verify-email', async (req, res) => {
 });
 
 // ============================================
-// LOGIN CON VERIFICACIÓN 🆕
+// LOGIN (CORREGIDO - Maneja usuarios de Google)
 // ============================================
 router.post('/login', async (req, res) => {
     try {
         const { correo, contraseña } = req.body;
 
+        console.log('Intento de login:', correo);
+
+        // Validar campos
+        if (!correo || !contraseña) {
+            return res.status(400).json({ error: 'Correo y contraseña son requeridos' });
+        }
+
         // Buscar usuario
         const usuario = await User.findOne({ correo });
         if (!usuario) {
-            return res.status(400).json({ error: 'Credenciales inválidas' });
+            console.log('Usuario no encontrado:', correo);
+            return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
-        // 🆕 Verificar si el email está confirmado
-        if (!usuario.verified) {
+        console.log('Usuario encontrado:', {
+            correo: usuario.correo,
+            tieneGoogleId: !!usuario.googleId,
+            tieneContraseña: !!usuario.contraseña,
+            verified: usuario.verified
+        });
+
+        // 🟢 CASO 1: Usuario de Google (tiene googleId pero no contraseña)
+        if (usuario.googleId && !usuario.contraseña) {
+            console.log('Intento de login con email/contra en cuenta de Google');
             return res.status(401).json({ 
-                error: '❌ Por favor verifica tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.'
+                error: '❌ Esta cuenta fue creada con Google. Por favor, inicia sesión con Google.',
+                tipo: 'google_account'
             });
         }
 
-        // Verificar contraseña
-        const contraseñaValida = await bcrypt.compare(contraseña, usuario.contraseña);
-        if (!contraseñaValida) {
-            return res.status(400).json({ error: 'Credenciales inválidas' });
+        // 🟢 CASO 2: Usuario normal que no ha verificado email
+        if (!usuario.verified) {
+            console.log('Usuario no verificado:', correo);
+            return res.status(401).json({ 
+                error: '❌ Por favor verifica tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.',
+                tipo: 'not_verified',
+                correo: usuario.correo
+            });
         }
 
-        // Generar token
+        // 🟢 CASO 3: Verificar contraseña
+        const contraseñaValida = await bcrypt.compare(contraseña, usuario.contraseña);
+        if (!contraseñaValida) {
+            console.log('Contraseña inválida para:', correo);
+            return res.status(401).json({ error: 'Credenciales inválidas' });
+        }
+
+        // 🟢 CASO 4: TODO OK - Generar token
         const token = jwt.sign(
             { id: usuario._id },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
+
+        console.log('✅ Login exitoso:', correo);
 
         res.json({
             token,
@@ -198,7 +238,8 @@ router.post('/login', async (req, res) => {
                 id: usuario._id,
                 nombre: usuario.nombre,
                 correo: usuario.correo,
-                role: usuario.role
+                role: usuario.role,
+                verified: usuario.verified
             }
         });
 
@@ -209,11 +250,15 @@ router.post('/login', async (req, res) => {
 });
 
 // ============================================
-// 🆕 REENVIAR CORREO DE VERIFICACIÓN
+// REENVIAR CORREO DE VERIFICACIÓN
 // ============================================
 router.post('/resend-verification', async (req, res) => {
     try {
         const { correo } = req.body;
+
+        if (!correo) {
+            return res.status(400).json({ error: 'Correo requerido' });
+        }
 
         const usuario = await User.findOne({ correo });
         if (!usuario) {
@@ -222,6 +267,10 @@ router.post('/resend-verification', async (req, res) => {
 
         if (usuario.verified) {
             return res.status(400).json({ error: 'El usuario ya está verificado' });
+        }
+
+        if (usuario.googleId) {
+            return res.status(400).json({ error: 'Las cuentas de Google no necesitan verificación' });
         }
 
         // Generar nuevo token
@@ -234,7 +283,9 @@ router.post('/resend-verification', async (req, res) => {
         await usuario.save();
 
         // Enviar correo
-        await sendVerificationEmail(usuario.correo, usuario.nombre, verificationToken);
+        if (typeof sendVerificationEmail === 'function') {
+            await sendVerificationEmail(usuario.correo, usuario.nombre, verificationToken);
+        }
 
         res.json({ mensaje: '✅ Correo de verificación reenviado' });
 
@@ -250,11 +301,39 @@ router.post('/resend-verification', async (req, res) => {
 router.get('/me', verificarToken, async (req, res) => {
     try {
         const usuario = await User.findById(req.usuarioId).select('-contraseña');
+        if (!usuario) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
         res.json(usuario);
     } catch (error) {
         console.error('Error al obtener usuario:', error);
         res.status(500).json({ error: 'Error al obtener datos del usuario' });
     }
 });
+
+// ============================================
+// RUTA PARA INICIO DE GOOGLE OAUTH
+// ============================================
+router.get('/google', (req, res) => {
+    const { redirect } = req.query;
+    // Guardar la URL de redirección en la sesión si existe
+    if (redirect) {
+        req.session.redirectUrl = redirect;
+    }
+    res.redirect('/auth/google');
+});
+
+// ============================================
+// CALLBACK DE GOOGLE (esta ruta va en app.js o server.js)
+// ============================================
+// NOTA: Esta ruta DEBE estar en tu archivo principal (app.js o server.js)
+// Ejemplo:
+// app.get('/auth/google/callback', 
+//   passport.authenticate('google', { session: false, failureRedirect: '/login.html?error=google' }),
+//   (req, res) => {
+//     const token = req.user.token;
+//     res.redirect(`https://luxecollection.org/login.html?token=${token}`);
+//   }
+// );
 
 module.exports = router;
