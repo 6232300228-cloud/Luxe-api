@@ -61,34 +61,32 @@ mongoose.connect(process.env.MONGODB_URI)
     });
 
 // ============================================
-// RUTA DE GOOGLE (INICIO)
+// AUTENTICACIÓN CON GOOGLE - VERSIÓN CORREGIDA
 // ============================================
-app.get('/api/auth/google', (req, res) => {
-    // Redirigir a la autenticación de Google
-    res.redirect('/auth/google/callback');
-});
 
-// ============================================
-// 🟢 RUTA DE GOOGLE - AQUÍ VAN LOS SCOPES 🟢
-// ============================================
+// Ruta para INICIAR el login con Google (UNA SOLA VEZ)
 app.get('/api/auth/google', 
     passport.authenticate('google', { 
-        scope: ['profile', 'email'], // ✅ LOS SCOPES VAN AQUÍ
+        scope: ['profile', 'email'], // ✅ SCOPES CORRECTOS
         accessType: 'offline',
         prompt: 'consent',
         session: false
     })
 );
 
-// ============================================
-// 🟢 CALLBACK DE GOOGLE
-// ============================================
+// Ruta para el CALLBACK de Google (donde Google redirige después)
 app.get('/auth/google/callback', 
     passport.authenticate('google', { 
         session: false, 
         failureRedirect: 'https://luxecollection.org/login.html?error=google' 
     }),
     (req, res) => {
+        // Verificación de seguridad
+        if (!req.user) {
+            console.error('❌ Error: No se recibió usuario de Google');
+            return res.redirect('https://luxecollection.org/login.html?error=google');
+        }
+        
         const token = req.user.token;
         console.log('✅ Login con Google exitoso:', req.user.correo);
         res.redirect(`https://luxecollection.org/login.html?token=${token}`);
