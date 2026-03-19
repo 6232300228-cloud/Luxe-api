@@ -3,9 +3,11 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: process.env.EMAIL_USER || 'TU_CORREO@gmail.com',
-        pass: process.env.EMAIL_PASS || 'tu-contraseña-de-aplicacion'
-    }
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    },
+    timeout: 10000, // Aumenta el timeout a 10 segundos
+    connectionTimeout: 10000
 });
 
 transporter.verify((error, success) => {

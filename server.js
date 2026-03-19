@@ -6,8 +6,9 @@ const passport = require('./config/passport');
 require('dotenv').config();
 
 // Importar MercadoPago
+const mercadopago = require("mercadopago");
+// O si usas la nueva versión:
 const { MercadoPagoConfig, Preference } = require("mercadopago");
-
 const app = express();
 
 // ============================================
