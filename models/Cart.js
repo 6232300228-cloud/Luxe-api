@@ -1,3 +1,4 @@
+// models/Cart.js
 const mongoose = require('mongoose');
 
 const cartSchema = new mongoose.Schema({
@@ -8,28 +9,14 @@ const cartSchema = new mongoose.Schema({
         unique: true 
     },
     productos: [{
-        productoId: { 
-            type: mongoose.Schema.Types.ObjectId, 
-            ref: 'Product',
-            required: true 
-        },
+        productoId: { type: Number, required: true },
         nombre: String,
         precio: Number,
-        cantidad: {
-            type: Number,
-            required: true,
-            min: 1
-        },
+        cantidad: { type: Number, default: 1 },
         imagen: String
     }],
-    total: {
-        type: Number,
-        default: 0
-    },
-    fechaActualizacion: {
-        type: Date,
-        default: Date.now
-    }
+    total: { type: Number, default: 0 },
+    fechaActualizacion: { type: Date, default: Date.now }
 });
 
 module.exports = mongoose.model('Cart', cartSchema);
