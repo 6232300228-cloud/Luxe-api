@@ -20,7 +20,7 @@ passport.deserializeUser(async (id, done) => {
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: '/auth/google/callback' // Debe coincidir con Google Console
+    callbackURL: 'https://luxe-api-frr5.onrender.com/auth/google/callback' // Debe coincidir con Google Console
 }, async (accessToken, refreshToken, profile, done) => {
     try {
         console.log('🔍 Procesando login con Google:', profile.emails[0].value);
