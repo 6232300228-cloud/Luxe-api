@@ -73,18 +73,16 @@ router.post('/register', async (req, res) => {
         await nuevoUsuario.save();
         console.log('✅ Usuario registrado:', correo);
 
-        // Enviar correo de verificación (solo si existe el servicio)
+        // Enviar correo de verificación
         if (typeof sendVerificationEmail === 'function') {
             try {
                 await sendVerificationEmail(correo, nombre, verificationToken);
                 console.log(`✅ Correo de verificación enviado a ${correo}`);
             } catch (emailError) {
                 console.error('❌ Error enviando correo:', emailError);
-                // No fallamos el registro si el correo no se envía
             }
         }
 
-        // Importante: NO generamos token JWT hasta que verifique el email
         res.status(201).json({
             mensaje: '✅ Registro exitoso. Por favor verifica tu correo electrónico.',
             requiereVerificacion: true,
@@ -114,19 +112,15 @@ router.get('/verify-email', async (req, res) => {
             return res.status(400).json({ error: 'Token requerido' });
         }
 
-        // Buscar usuario con ese token
         const usuario = await User.findOne({ 
             verificationToken: token,
-            tokenExpires: { $gt: new Date() } // Token no expirado
+            tokenExpires: { $gt: new Date() }
         });
 
         if (!usuario) {
-            return res.status(400).json({ 
-                error: 'Token inválido o expirado' 
-            });
+            return res.status(400).json({ error: 'Token inválido o expirado' });
         }
 
-        // Actualizar usuario
         usuario.verified = true;
         usuario.verificationToken = undefined;
         usuario.tokenExpires = undefined;
@@ -134,7 +128,6 @@ router.get('/verify-email', async (req, res) => {
 
         console.log('✅ Email verificado:', usuario.correo);
 
-        // Respuesta HTML para mejor experiencia
         res.send(`
             <!DOCTYPE html>
             <html>
@@ -170,7 +163,7 @@ router.get('/verify-email', async (req, res) => {
 });
 
 // ============================================
-// LOGIN (CORREGIDO - Maneja usuarios de Google)
+// LOGIN
 // ============================================
 router.post('/login', async (req, res) => {
     try {
@@ -178,12 +171,10 @@ router.post('/login', async (req, res) => {
 
         console.log('Intento de login:', correo);
 
-        // Validar campos
         if (!correo || !contraseña) {
             return res.status(400).json({ error: 'Correo y contraseña son requeridos' });
         }
 
-        // Buscar usuario
         const usuario = await User.findOne({ correo });
         if (!usuario) {
             console.log('Usuario no encontrado:', correo);
@@ -197,33 +188,33 @@ router.post('/login', async (req, res) => {
             verified: usuario.verified
         });
 
-        // 🟢 CASO 1: Usuario de Google (tiene googleId pero no contraseña)
+        // CASO 1: Usuario de Google
         if (usuario.googleId && !usuario.contraseña) {
-            console.log('Intento de login con email/contra en cuenta de Google');
+            console.log('Intento de login con email en cuenta de Google');
             return res.status(401).json({ 
                 error: '❌ Esta cuenta fue creada con Google. Por favor, inicia sesión con Google.',
                 tipo: 'google_account'
             });
         }
 
-        // 🟢 CASO 2: Usuario normal que no ha verificado email
+        // CASO 2: Usuario no verificado
         if (!usuario.verified) {
             console.log('Usuario no verificado:', correo);
             return res.status(401).json({ 
-                error: '❌ Por favor verifica tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.',
+                error: '❌ Por favor verifica tu correo electrónico antes de iniciar sesión.',
                 tipo: 'not_verified',
                 correo: usuario.correo
             });
         }
 
-        // 🟢 CASO 3: Verificar contraseña
+        // CASO 3: Verificar contraseña
         const contraseñaValida = await bcrypt.compare(contraseña, usuario.contraseña);
         if (!contraseñaValida) {
             console.log('Contraseña inválida para:', correo);
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
-        // 🟢 CASO 4: TODO OK - Generar token
+        // TODO OK - Generar token
         const token = jwt.sign(
             { id: usuario._id },
             process.env.JWT_SECRET,
@@ -273,7 +264,6 @@ router.post('/resend-verification', async (req, res) => {
             return res.status(400).json({ error: 'Las cuentas de Google no necesitan verificación' });
         }
 
-        // Generar nuevo token
         const verificationToken = crypto.randomBytes(32).toString('hex');
         const tokenExpires = new Date();
         tokenExpires.setHours(tokenExpires.getHours() + 24);
@@ -282,7 +272,6 @@ router.post('/resend-verification', async (req, res) => {
         usuario.tokenExpires = tokenExpires;
         await usuario.save();
 
-        // Enviar correo
         if (typeof sendVerificationEmail === 'function') {
             await sendVerificationEmail(usuario.correo, usuario.nombre, verificationToken);
         }
@@ -310,30 +299,5 @@ router.get('/me', verificarToken, async (req, res) => {
         res.status(500).json({ error: 'Error al obtener datos del usuario' });
     }
 });
-
-// ============================================
-// RUTA PARA INICIO DE GOOGLE OAUTH
-// ============================================
-router.get('/google', (req, res) => {
-    const { redirect } = req.query;
-    // Guardar la URL de redirección en la sesión si existe
-    if (redirect) {
-        req.session.redirectUrl = redirect;
-    }
-    res.redirect('/auth/google');
-});
-
-// ============================================
-// CALLBACK DE GOOGLE (esta ruta va en app.js o server.js)
-// ============================================
-// NOTA: Esta ruta DEBE estar en tu archivo principal (app.js o server.js)
-// Ejemplo:
-// app.get('/auth/google/callback', 
-//   passport.authenticate('google', { session: false, failureRedirect: '/login.html?error=google' }),
-//   (req, res) => {
-//     const token = req.user.token;
-//     res.redirect(`https://luxecollection.org/login.html?token=${token}`);
-//   }
-// );
 
 module.exports = router;

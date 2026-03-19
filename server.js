@@ -2,13 +2,13 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const session = require('express-session');
-const passport = require('./config/passport');
+const passport = require('./config/passport'); // IMPORTANTE: esta ruta debe existir
 require('dotenv').config();
 
 // Importar MercadoPago
 const mercadopago = require("mercadopago");
-// O si usas la nueva versión:
 const { MercadoPagoConfig, Preference } = require("mercadopago");
+
 const app = express();
 
 // ============================================
@@ -23,7 +23,6 @@ const mercadopagoClient = new MercadoPagoConfig({
 // ============================================
 app.use(express.json());
 
-// Configurar CORS actualizado
 app.use(cors({
     origin: [
         'https://luxecollection.org',
@@ -35,14 +34,13 @@ app.use(cors({
     credentials: true
 }));
 
-// Configurar sesión
 app.use(session({
     secret: process.env.SESSION_SECRET || 'luxe-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: { 
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 24 * 60 * 60 * 1000 // 24 horas
+        maxAge: 24 * 60 * 60 * 1000
     }
 }));
 
@@ -59,11 +57,37 @@ mongoose.connect(process.env.MONGODB_URI)
     .catch(err => {
         console.error('❌ Error conectando a MongoDB:');
         console.error(err);
-        process.exit(1); // Salir si no hay DB
+        process.exit(1);
     });
 
 // ============================================
-// RUTAS DE MERCADO PAGO (¡NUEVO!)
+// RUTA DE GOOGLE (INICIO)
+// ============================================
+app.get('/api/auth/google', (req, res) => {
+    // Redirigir a la autenticación de Google
+    res.redirect('/auth/google/callback');
+});
+
+// ============================================
+// 🟢🟢🟢 RUTA DE CALLBACK DE GOOGLE (¡LA QUE FALTABA!) 🟢🟢🟢
+// ============================================
+app.get('/auth/google/callback', 
+    passport.authenticate('google', { 
+        session: false, 
+        failureRedirect: 'https://luxecollection.org/login.html?error=google' 
+    }),
+    (req, res) => {
+        // ¡Éxito! El token viene de passport.js
+        const token = req.user.token;
+        console.log('✅ Login con Google exitoso para:', req.user.correo);
+        
+        // Redirigir al frontend con el token
+        res.redirect(`https://luxecollection.org/login.html?token=${token}`);
+    }
+);
+
+// ============================================
+// RUTAS DE MERCADO PAGO
 // ============================================
 app.post("/api/crear-preferencia", async (req, res) => {
     try {
@@ -110,10 +134,9 @@ app.post("/api/crear-preferencia", async (req, res) => {
 });
 
 // ============================================
-// IMPORTAR RUTAS EXISTENTES
+// IMPORTAR RUTAS
 // ============================================
 const authRoutes = require('./routes/auth');
-const googleAuthRoutes = require('./routes/googleAuth');
 const productRoutes = require('./routes/products');
 const cartRoutes = require('./routes/cart');
 const orderRoutes = require('./routes/orders');
@@ -122,7 +145,6 @@ const orderRoutes = require('./routes/orders');
 // USAR RUTAS
 // ============================================
 app.use('/api/auth', authRoutes);
-app.use('/api/auth', googleAuthRoutes); // Rutas de Google Auth
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
@@ -137,6 +159,7 @@ app.get('/', (req, res) => {
         endpoints: {
             auth: '/api/auth',
             google: '/api/auth/google',
+            googleCallback: '/auth/google/callback',
             productos: '/api/products',
             carrito: '/api/cart',
             pedidos: '/api/orders',
@@ -175,11 +198,9 @@ app.listen(PORT, () => {
     console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
     console.log(`📝 Entorno: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔗 URL: http://localhost:${PORT}`);
+    console.log(`🔑 Google Auth Callback: http://localhost:${PORT}/auth/google/callback`);
 });
 
-// ============================================
-// MANEJO DE PROCESOS
-// ============================================
 process.on('uncaughtException', (err) => {
     console.error('❌ Error no capturado:', err);
     process.exit(1);
