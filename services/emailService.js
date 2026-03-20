@@ -1,4 +1,4 @@
-// /services/emailService.js - CONFIGURACIÓN COMPLETA
+// /services/emailService.js - VERSIÓN CORREGIDA
 const nodemailer = require('nodemailer');
 
 // Configuración del transporter (USANDO GMAIL)
@@ -14,8 +14,9 @@ const transporter = nodemailer.createTransport({
 const sendVerificationEmail = async (correo, nombre, token) => {
     const verificationLink = `https://luxe-api-frr5.onrender.com/api/auth/verify-email?token=${token}`;
     
+    // ✅ CORREGIDO: Usar backticks ` para interpolar variables
     const mailOptions = {
-        from: '"Luxe Collection" <${process.env.EMAIL_USER}>',
+        from: `"Luxe Collection" <${process.env.EMAIL_USER}>`,
         to: correo,
         subject: 'Verifica tu correo electrónico - Luxe Collection',
         html: `
@@ -59,11 +60,13 @@ const sendVerificationEmail = async (correo, nombre, token) => {
     };
 
     try {
-        await transporter.sendMail(mailOptions);
+        const info = await transporter.sendMail(mailOptions);
         console.log(`✅ Correo de verificación enviado a: ${correo}`);
+        console.log(`📧 ID del mensaje: ${info.messageId}`);
         return true;
     } catch (error) {
         console.error('❌ Error enviando correo:', error);
+        console.error('Detalles:', error.message);
         throw error;
     }
 };
