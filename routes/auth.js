@@ -30,8 +30,8 @@ const verificarToken = (req, res, next) => {
     }
 };
 
-// ============================================
-// REGISTRO CON VERIFICACIÓN DE EMAIL
+/// ============================================
+// REGISTRO - VERSIÓN CORREGIDA (NO ESPERA EL CORREO)
 // ============================================
 router.post('/register', async (req, res) => {
     try {
@@ -55,7 +55,7 @@ router.post('/register', async (req, res) => {
         // Generar token de verificación
         const verificationToken = crypto.randomBytes(32).toString('hex');
         const tokenExpires = new Date();
-        tokenExpires.setHours(tokenExpires.getHours() + 24); // Válido por 24 horas
+        tokenExpires.setHours(tokenExpires.getHours() + 24);
 
         // Crear usuario
         const nuevoUsuario = new User({
@@ -73,16 +73,15 @@ router.post('/register', async (req, res) => {
         await nuevoUsuario.save();
         console.log('✅ Usuario registrado:', correo);
 
-        // Enviar correo de verificación
+        // 🟢 ENVIAR CORREO EN SEGUNDO PLANO (NO ESPERAR)
         if (typeof sendVerificationEmail === 'function') {
-            try {
-                await sendVerificationEmail(correo, nombre, verificationToken);
-                console.log(`✅ Correo de verificación enviado a ${correo}`);
-            } catch (emailError) {
-                console.error('❌ Error enviando correo:', emailError);
-            }
+            // No usar await - que se ejecute en segundo plano
+            sendVerificationEmail(correo, nombre, verificationToken)
+                .then(() => console.log(`✅ Correo enviado a ${correo}`))
+                .catch(err => console.error('❌ Error enviando correo (en segundo plano):', err));
         }
 
+        // 🟢 RESPONDER INMEDIATAMENTE (sin esperar el correo)
         res.status(201).json({
             mensaje: '✅ Registro exitoso. Por favor verifica tu correo electrónico.',
             requiereVerificacion: true,
