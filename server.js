@@ -2,11 +2,10 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const session = require('express-session');
-const passport = require('./config/passport'); // IMPORTANTE: esta ruta debe existir
+const passport = require('./config/passport');
 require('dotenv').config();
 
 // Importar MercadoPago
-const mercadopago = require("mercadopago");
 const { MercadoPagoConfig, Preference } = require("mercadopago");
 
 const app = express();
@@ -29,7 +28,8 @@ app.use(cors({
         'https://www.luxecollection.org', 
         'https://luxe-api-frr5.onrender.com',
         'http://127.0.0.1:5500',
-        'http://localhost:5500'
+        'http://localhost:5500',
+        'http://localhost:3000'
     ],
     credentials: true
 }));
@@ -61,27 +61,24 @@ mongoose.connect(process.env.MONGODB_URI)
     });
 
 // ============================================
-// AUTENTICACIÓN CON GOOGLE - VERSIÓN CORREGIDA
+// AUTENTICACIÓN CON GOOGLE
 // ============================================
 
-// Ruta para INICIAR el login con Google (UNA SOLA VEZ)
 app.get('/api/auth/google', 
     passport.authenticate('google', { 
-        scope: ['profile', 'email'], // ✅ SCOPES CORRECTOS
+        scope: ['profile', 'email'],
         accessType: 'offline',
         prompt: 'consent',
         session: false
     })
 );
 
-// Ruta para el CALLBACK de Google (donde Google redirige después)
 app.get('/auth/google/callback', 
     passport.authenticate('google', { 
         session: false, 
         failureRedirect: 'https://luxecollection.org/login.html?error=google' 
     }),
     (req, res) => {
-        // Verificación de seguridad
         if (!req.user) {
             console.error('❌ Error: No se recibió usuario de Google');
             return res.redirect('https://luxecollection.org/login.html?error=google');
@@ -92,17 +89,31 @@ app.get('/auth/google/callback',
         res.redirect(`https://luxecollection.org/login.html?token=${token}`);
     }
 );
+
 // ============================================
-// RUTAS DE MERCADO PAGO
+// RUTA DE MERCADO PAGO - CREAR PREFERENCIA
 // ============================================
 app.post("/api/crear-preferencia", async (req, res) => {
     try {
         const carrito = req.body.items;
 
+        // Validar que el carrito no esté vacío
         if (!carrito || carrito.length === 0) {
-            return res.status(400).json({ error: "El carrito está vacío" });
+            return res.status(400).json({ 
+                error: "El carrito está vacío" 
+            });
         }
 
+        // Validar cada producto
+        for (const producto of carrito) {
+            if (!producto.nombre || !producto.precio) {
+                return res.status(400).json({ 
+                    error: "Datos de producto inválidos" 
+                });
+            }
+        }
+
+        // Mapear productos al formato de Mercado Pago
         const items = carrito.map(producto => ({
             title: producto.nombre,
             quantity: Number(producto.cantidad) || 1,
@@ -110,6 +121,7 @@ app.post("/api/crear-preferencia", async (req, res) => {
             currency_id: "MXN"
         }));
 
+        // Crear la preferencia de pago
         const preference = new Preference(mercadopagoClient);
 
         const result = await preference.create({
@@ -121,10 +133,12 @@ app.post("/api/crear-preferencia", async (req, res) => {
                     pending: "https://luxecollection.org/pending.html"
                 },
                 auto_return: "approved",
-                statement_descriptor: "LUXE COLLECTION"
+                statement_descriptor: "LUXE COLLECTION",
+                external_reference: Date.now().toString() // Referencia única para tracking
             }
         });
 
+        // Devolver la URL de pago
         res.json({
             init_point: result.init_point,
             id: result.id
@@ -133,9 +147,31 @@ app.post("/api/crear-preferencia", async (req, res) => {
     } catch (error) {
         console.error('❌ Error en Mercado Pago:', error);
         res.status(500).json({ 
-            error: "Error al crear pago",
+            error: "Error al crear el pago",
             details: error.message 
         });
+    }
+});
+
+// ============================================
+// RUTA DE MERCADO PAGO - WEBHOOK (opcional)
+// ============================================
+app.post("/api/webhook-mercadopago", async (req, res) => {
+    try {
+        const { type, data } = req.body;
+        
+        if (type === "payment") {
+            const paymentId = data.id;
+            console.log(`💳 Pago recibido ID: ${paymentId}`);
+            
+            // Aquí puedes actualizar el estado del pedido en tu base de datos
+            // Por ejemplo: marcar la orden como pagada
+        }
+        
+        res.status(200).json({ received: true });
+    } catch (error) {
+        console.error('❌ Error en webhook:', error);
+        res.status(500).json({ error: "Error en webhook" });
     }
 });
 
@@ -161,7 +197,7 @@ app.use('/api/orders', orderRoutes);
 app.get('/', (req, res) => {
     res.json({ 
         mensaje: '🚀 API de Luxe Collection funcionando',
-        version: '2.0',
+        version: '2.1',
         endpoints: {
             auth: '/api/auth',
             google: '/api/auth/google',
@@ -169,7 +205,8 @@ app.get('/', (req, res) => {
             productos: '/api/products',
             carrito: '/api/cart',
             pedidos: '/api/orders',
-            mercadopago: '/api/crear-preferencia'
+            mercadopago: '/api/crear-preferencia',
+            webhook: '/api/webhook-mercadopago'
         }
     });
 });
@@ -177,7 +214,8 @@ app.get('/', (req, res) => {
 app.get('/api/test', (req, res) => {
     res.json({ 
         mensaje: '✅ API funcionando correctamente',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        mercadopago: 'Configurado'
     });
 });
 
@@ -205,6 +243,7 @@ app.listen(PORT, () => {
     console.log(`📝 Entorno: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔗 URL: http://localhost:${PORT}`);
     console.log(`🔑 Google Auth Callback: http://localhost:${PORT}/auth/google/callback`);
+    console.log(`💰 Mercado Pago: POST /api/crear-preferencia`);
 });
 
 process.on('uncaughtException', (err) => {
