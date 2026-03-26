@@ -1,3 +1,4 @@
+console.log('📧 emailService.js se ha cargado correctamente');
 // /services/emailService.js - VERSIÓN CORREGIDA
 const nodemailer = require('nodemailer');
 

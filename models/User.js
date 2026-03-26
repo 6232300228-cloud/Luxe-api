@@ -1,3 +1,4 @@
+// models/User.js
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
@@ -7,9 +8,7 @@ const userSchema = new mongoose.Schema({
     direccion: { type: String, default: '' },
     contraseña: { type: String },
     role: { type: String, enum: ['cliente', 'admin', 'empleado'], default: 'cliente' },
-    verified: { type: Boolean, default: false },
-    verificationToken: { type: String },
-    tokenExpires: { type: Date },
+    verified: { type: Boolean, default: true }, // ✅ Por defecto verificado
     googleId: { type: String },
     fechaRegistro: { type: Date, default: Date.now }
 });
