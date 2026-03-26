@@ -5,7 +5,6 @@ const crypto = require('crypto');
 const User = require('../models/User');
 
 const router = express.Router();
-
 // ============================================
 // MIDDLEWARE: Verificar Token
 // ============================================
