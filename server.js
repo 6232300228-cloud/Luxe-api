@@ -91,21 +91,21 @@ app.get('/auth/google/callback',
 );
 
 // ============================================
-// RUTA DE MERCADO PAGO - CREAR PREFERENCIA
+// RUTA DE MERCADO PAGO - CREAR PREFERENCIA (CON ENVÍO INCLUIDO)
 // ============================================
 app.post("/api/crear-preferencia", async (req, res) => {
     try {
-        const carrito = req.body.items;
-
+        const { items, envio, payer } = req.body;
+        
         // Validar que el carrito no esté vacío
-        if (!carrito || carrito.length === 0) {
+        if (!items || items.length === 0) {
             return res.status(400).json({ 
                 error: "El carrito está vacío" 
             });
         }
 
         // Validar cada producto
-        for (const producto of carrito) {
+        for (const producto of items) {
             if (!producto.nombre || !producto.precio) {
                 return res.status(400).json({ 
                     error: "Datos de producto inválidos" 
@@ -114,19 +114,42 @@ app.post("/api/crear-preferencia", async (req, res) => {
         }
 
         // Mapear productos al formato de Mercado Pago
-        const items = carrito.map(producto => ({
+        const productosMP = items.map(producto => ({
             title: producto.nombre,
             quantity: Number(producto.cantidad) || 1,
             unit_price: Number(producto.precio),
             currency_id: "MXN"
         }));
+        
+        // Calcular costo de envío (viene del frontend)
+        const costoEnvio = Number(envio) || 0;
+        
+        // Si hay costo de envío, agregarlo como un item adicional
+        if (costoEnvio > 0) {
+            productosMP.push({
+                title: "🚚 Costo de envío",
+                quantity: 1,
+                unit_price: costoEnvio,
+                currency_id: "MXN"
+            });
+        }
+        
+        console.log(' Productos a pagar:', productosMP);
+        console.log(' Total con envío:', productosMP.reduce((sum, p) => sum + (p.unit_price * p.quantity), 0));
 
         // Crear la preferencia de pago
         const preference = new Preference(mercadopagoClient);
 
         const result = await preference.create({
             body: {
-                items: items,
+                items: productosMP,
+                payer: payer ? {
+                    name: payer.name,
+                    email: payer.email,
+                    address: {
+                        street_name: payer.address
+                    }
+                } : undefined,
                 back_urls: {
                     success: "https://luxecollection.org/success.html",
                     failure: "https://luxecollection.org/failure.html",
@@ -134,7 +157,7 @@ app.post("/api/crear-preferencia", async (req, res) => {
                 },
                 auto_return: "approved",
                 statement_descriptor: "LUXE COLLECTION",
-                external_reference: Date.now().toString() // Referencia única para tracking
+                external_reference: Date.now().toString()
             }
         });
 
@@ -154,11 +177,13 @@ app.post("/api/crear-preferencia", async (req, res) => {
 });
 
 // ============================================
-// RUTA DE MERCADO PAGO - WEBHOOK (opcional)
+// RUTA DE MERCADO PAGO - WEBHOOK (para recibir notificaciones)
 // ============================================
 app.post("/api/webhook-mercadopago", async (req, res) => {
     try {
         const { type, data } = req.body;
+        
+        console.log('📩 Webhook recibido:', { type, data });
         
         if (type === "payment") {
             const paymentId = data.id;
@@ -197,7 +222,7 @@ app.use('/api/orders', orderRoutes);
 app.get('/', (req, res) => {
     res.json({ 
         mensaje: '🚀 API de Luxe Collection funcionando',
-        version: '2.1',
+        version: '2.2',
         endpoints: {
             auth: '/api/auth',
             google: '/api/auth/google',
@@ -244,6 +269,7 @@ app.listen(PORT, () => {
     console.log(`🔗 URL: http://localhost:${PORT}`);
     console.log(`🔑 Google Auth Callback: http://localhost:${PORT}/auth/google/callback`);
     console.log(`💰 Mercado Pago: POST /api/crear-preferencia`);
+    console.log(`📦 El envío se incluye como un item adicional en Mercado Pago`);
 });
 
 process.on('uncaughtException', (err) => {
