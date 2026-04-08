@@ -25,8 +25,13 @@ app.use(cors({
         'http://localhost:5500',
         'http://localhost:3000'
     ],
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Manejar explicitamente las peticiones OPTIONS
+app.options('*', cors());
 
 app.use(session({
     secret: process.env.SESSION_SECRET || 'luxe-secret-key',
