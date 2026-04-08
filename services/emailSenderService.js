@@ -1,4 +1,3 @@
-// services/emailService.js
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
@@ -6,8 +5,11 @@ const transporter = nodemailer.createTransport({
     port: 465,
     secure: true,
     auth: {
-        user: process.env.EMAIL_USER,
+        user: 'LuxeCollection@luxecollection.org',
         pass: process.env.EMAIL_PASS
+    },
+    tls: {
+        rejectUnauthorized: false
     }
 });
 
@@ -34,8 +36,6 @@ const enviarNotificacionNewsletter = async (emailSuscrito) => {
         <p><strong>Email:</strong> ${emailSuscrito}</p>
         <p><strong>Fecha:</strong> ${new Date().toLocaleString()}</p>
         <p>Este usuario se ha suscrito al newsletter.</p>
-        <hr>
-        <p>Luxe Collection</p>
     `;
     return enviarCorreo('LuxeCollection@luxecollection.org', asunto, html);
 };
@@ -45,8 +45,7 @@ const enviarConfirmacionSuscripcion = async (emailUsuario) => {
     const html = `
         <h2>Bienvenida a Luxe Collection</h2>
         <p>Gracias por suscribirte al Club Luxe.</p>
-        <p>Recibiras nuestras mejores ofertas exclusivas directamente en tu correo.</p>
-        <p>Pronto recibiras novedades y promociones especiales.</p>
+        <p>Recibiras nuestras mejores ofertas exclusivas.</p>
         <hr>
         <p>Luxe Collection - Elegancia que inspira</p>
     `;
@@ -60,7 +59,7 @@ const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
         <p>Hemos recibido tu pedido correctamente.</p>
         <p><strong>Detalles del pedido:</strong></p>
         <pre>${JSON.stringify(datosCompra, null, 2)}</pre>
-        <p>En breve recibiras informacion de envio y seguimiento.</p>
+        <p>En breve recibiras informacion de envio.</p>
         <hr>
         <p>Luxe Collection - Elegancia que inspira</p>
     `;

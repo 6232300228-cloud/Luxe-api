@@ -5,21 +5,15 @@ const session = require('express-session');
 const passport = require('./config/passport');
 require('dotenv').config();
 
-// Importar MercadoPago
 const { MercadoPagoConfig, Preference } = require("mercadopago");
+const emailService = require('./services/emailService');
 
 const app = express();
 
-// ============================================
-// CONFIGURACIÓN DE MERCADO PAGO
-// ============================================
 const mercadopagoClient = new MercadoPagoConfig({
     accessToken: process.env.MP_ACCESS_TOKEN || "APP_USR-5562521962692930-030522-9080c61c1567cf8b93f52eb8a9dfa477-3247325848"
 });
 
-// ============================================
-// MIDDLEWARE
-// ============================================
 app.use(express.json());
 
 app.use(cors({
@@ -44,25 +38,17 @@ app.use(session({
     }
 }));
 
-// Inicializar Passport
 app.use(passport.initialize());
 app.use(passport.session());
 
-// ============================================
-// CONEXIÓN A MONGODB
-// ============================================
-console.log('🔌 Conectando a MongoDB...');
+console.log('Conectando a MongoDB...');
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('✅ Conectado a MongoDB Atlas'))
+    .then(() => console.log('Conectado a MongoDB Atlas'))
     .catch(err => {
-        console.error('❌ Error conectando a MongoDB:');
+        console.error('Error conectando a MongoDB:');
         console.error(err);
         process.exit(1);
     });
-
-// ============================================
-// AUTENTICACIÓN CON GOOGLE
-// ============================================
 
 app.get('/api/auth/google', 
     passport.authenticate('google', { 
@@ -80,40 +66,34 @@ app.get('/auth/google/callback',
     }),
     (req, res) => {
         if (!req.user) {
-            console.error('❌ Error: No se recibió usuario de Google');
+            console.error('Error: No se recibio usuario de Google');
             return res.redirect('https://luxecollection.org/login.html?error=google');
         }
         
         const token = req.user.token;
-        console.log('✅ Login con Google exitoso:', req.user.correo);
+        console.log('Login con Google exitoso:', req.user.correo);
         res.redirect(`https://luxecollection.org/login.html?token=${token}`);
     }
 );
 
-// ============================================
-// RUTA DE MERCADO PAGO - CREAR PREFERENCIA (CON ENVÍO INCLUIDO)
-// ============================================
 app.post("/api/crear-preferencia", async (req, res) => {
     try {
         const { items, envio, payer } = req.body;
         
-        // Validar que el carrito no esté vacío
         if (!items || items.length === 0) {
             return res.status(400).json({ 
-                error: "El carrito está vacío" 
+                error: "El carrito esta vacio" 
             });
         }
 
-        // Validar cada producto
         for (const producto of items) {
             if (!producto.nombre || !producto.precio) {
                 return res.status(400).json({ 
-                    error: "Datos de producto inválidos" 
+                    error: "Datos de producto invalidos" 
                 });
             }
         }
 
-        // Mapear productos al formato de Mercado Pago
         const productosMP = items.map(producto => ({
             title: producto.nombre,
             quantity: Number(producto.cantidad) || 1,
@@ -121,23 +101,20 @@ app.post("/api/crear-preferencia", async (req, res) => {
             currency_id: "MXN"
         }));
         
-        // Calcular costo de envío (viene del frontend)
         const costoEnvio = Number(envio) || 0;
         
-        // Si hay costo de envío, agregarlo como un item adicional
         if (costoEnvio > 0) {
             productosMP.push({
-                title: "🚚 Costo de envío",
+                title: "Costo de envio",
                 quantity: 1,
                 unit_price: costoEnvio,
                 currency_id: "MXN"
             });
         }
         
-        console.log(' Productos a pagar:', productosMP);
-        console.log(' Total con envío:', productosMP.reduce((sum, p) => sum + (p.unit_price * p.quantity), 0));
+        console.log('Productos a pagar:', productosMP);
+        console.log('Total con envio:', productosMP.reduce((sum, p) => sum + (p.unit_price * p.quantity), 0));
 
-        // Crear la preferencia de pago
         const preference = new Preference(mercadopagoClient);
 
         const result = await preference.create({
@@ -161,14 +138,13 @@ app.post("/api/crear-preferencia", async (req, res) => {
             }
         });
 
-        // Devolver la URL de pago
         res.json({
             init_point: result.init_point,
             id: result.id
         });
 
     } catch (error) {
-        console.error('❌ Error en Mercado Pago:', error);
+        console.error('Error en Mercado Pago:', error);
         res.status(500).json({ 
             error: "Error al crear el pago",
             details: error.message 
@@ -176,53 +152,73 @@ app.post("/api/crear-preferencia", async (req, res) => {
     }
 });
 
-// ============================================
-// RUTA DE MERCADO PAGO - WEBHOOK (para recibir notificaciones)
-// ============================================
 app.post("/api/webhook-mercadopago", async (req, res) => {
     try {
         const { type, data } = req.body;
         
-        console.log('📩 Webhook recibido:', { type, data });
+        console.log('Webhook recibido:', { type, data });
         
         if (type === "payment") {
             const paymentId = data.id;
-            console.log(`💳 Pago recibido ID: ${paymentId}`);
-            
-            // Aquí puedes actualizar el estado del pedido en tu base de datos
-            // Por ejemplo: marcar la orden como pagada
+            console.log('Pago recibido ID:', paymentId);
         }
         
         res.status(200).json({ received: true });
     } catch (error) {
-        console.error('❌ Error en webhook:', error);
+        console.error('Error en webhook:', error);
         res.status(500).json({ error: "Error en webhook" });
     }
 });
 
-// ============================================
-// IMPORTAR RUTAS
-// ============================================
+app.post('/api/newsletter', async (req, res) => {
+    const { email } = req.body;
+    
+    if (!email || !email.includes('@')) {
+        return res.status(400).json({ exito: false, error: 'Email invalido' });
+    }
+    
+    try {
+        await emailService.enviarNotificacionNewsletter(email);
+        await emailService.enviarConfirmacionSuscripcion(email);
+        console.log('Newsletter suscrito:', email);
+        res.json({ exito: true, mensaje: 'Suscripcion exitosa' });
+    } catch (error) {
+        console.error('Error en newsletter:', error);
+        res.status(500).json({ exito: false, error: 'Error al enviar correo' });
+    }
+});
+
+app.post('/api/confirmar-compra', async (req, res) => {
+    const { emailCliente, datosCompra } = req.body;
+    
+    if (!emailCliente || !emailCliente.includes('@')) {
+        return res.status(400).json({ exito: false, error: 'Email del cliente invalido' });
+    }
+    
+    try {
+        await emailService.enviarConfirmacionCompra(emailCliente, datosCompra);
+        console.log('Confirmacion de compra enviada a:', emailCliente);
+        res.json({ exito: true, mensaje: 'Correo de confirmacion enviado' });
+    } catch (error) {
+        console.error('Error enviando confirmacion de compra:', error);
+        res.status(500).json({ exito: false, error: error.message });
+    }
+});
+
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const cartRoutes = require('./routes/cart');
 const orderRoutes = require('./routes/orders');
 
-// ============================================
-// USAR RUTAS
-// ============================================
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 
-// ============================================
-// RUTAS DE PRUEBA
-// ============================================
 app.get('/', (req, res) => {
     res.json({ 
-        mensaje: '🚀 API de Luxe Collection funcionando',
-        version: '2.2',
+        mensaje: 'API de Luxe Collection funcionando',
+        version: '2.3',
         endpoints: {
             auth: '/api/auth',
             google: '/api/auth/google',
@@ -231,53 +227,51 @@ app.get('/', (req, res) => {
             carrito: '/api/cart',
             pedidos: '/api/orders',
             mercadopago: '/api/crear-preferencia',
-            webhook: '/api/webhook-mercadopago'
+            webhook: '/api/webhook-mercadopago',
+            newsletter: '/api/newsletter',
+            confirmarCompra: '/api/confirmar-compra'
         }
     });
 });
 
 app.get('/api/test', (req, res) => {
     res.json({ 
-        mensaje: '✅ API funcionando correctamente',
+        mensaje: 'API funcionando correctamente',
         timestamp: new Date().toISOString(),
         mercadopago: 'Configurado'
     });
 });
 
-// ============================================
-// MANEJO DE ERRORES
-// ============================================
 app.use((req, res) => {
     res.status(404).json({ error: 'Ruta no encontrada' });
 });
 
 app.use((err, req, res, next) => {
-    console.error('❌ Error del servidor:', err);
+    console.error('Error del servidor:', err);
     res.status(500).json({ 
         error: 'Error interno del servidor',
         message: err.message 
     });
 });
 
-// ============================================
-// INICIAR SERVIDOR
-// ============================================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-    console.log(`📝 Entorno: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🔗 URL: http://localhost:${PORT}`);
-    console.log(`🔑 Google Auth Callback: http://localhost:${PORT}/auth/google/callback`);
-    console.log(`💰 Mercado Pago: POST /api/crear-preferencia`);
-    console.log(`📦 El envío se incluye como un item adicional en Mercado Pago`);
+    console.log(`Servidor corriendo en puerto ${PORT}`);
+    console.log(`Entorno: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`URL: http://localhost:${PORT}`);
+    console.log(`Google Auth Callback: http://localhost:${PORT}/auth/google/callback`);
+    console.log(`Mercado Pago: POST /api/crear-preferencia`);
+    console.log(`Newsletter: POST /api/newsletter`);
+    console.log(`Confirmacion Compra: POST /api/confirmar-compra`);
+    console.log(`El envio se incluye como un item adicional en Mercado Pago`);
 });
 
 process.on('uncaughtException', (err) => {
-    console.error('❌ Error no capturado:', err);
+    console.error('Error no capturado:', err);
     process.exit(1);
 });
 
 process.on('unhandledRejection', (err) => {
-    console.error('❌ Promesa rechazada:', err);
+    console.error('Promesa rechazada:', err);
     process.exit(1);
 });
