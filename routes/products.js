@@ -10,7 +10,7 @@ const router = express.Router();
 const verificarToken = (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
-        return res.status(401).json({ error: '❌ No autorizado' });
+        return res.status(401).json({ error: ' No autorizado' });
     }
 
     try {
@@ -18,7 +18,7 @@ const verificarToken = (req, res, next) => {
         req.usuarioId = decoded.id;
         next();
     } catch (error) {
-        return res.status(401).json({ error: '❌ Token inválido' });
+        return res.status(401).json({ error: ' Token inválido' });
     }
 };
 
@@ -26,7 +26,7 @@ const verificarToken = (req, res, next) => {
 // RUTA DE PRUEBA
 // ============================================
 router.get('/test', (req, res) => {
-    res.json({ mensaje: '📦 Ruta de productos funcionando correctamente' });
+    res.json({ mensaje: ' Ruta de productos funcionando correctamente' });
 });
 
 // ============================================
@@ -84,10 +84,10 @@ router.post('/crear', verificarToken, async (req, res) => {
         });
 
         await nuevoProducto.save();
-        console.log('✅ Producto creado:', name);
+        console.log('Producto creado:', name);
 
         res.status(201).json({
-            mensaje: '✅ Producto creado exitosamente',
+            mensaje: ' Producto creado exitosamente',
             producto: nuevoProducto
         });
 
@@ -119,10 +119,10 @@ router.put('/actualizar/:id', verificarToken, async (req, res) => {
         if (stock !== undefined) producto.stock = parseInt(stock);
         
         await producto.save();
-        console.log('✅ Producto actualizado:', producto.name);
+        console.log(' Producto actualizado:', producto.name);
         
         res.json({ 
-            mensaje: '✅ Producto actualizado exitosamente',
+            mensaje: ' Producto actualizado exitosamente',
             producto 
         });
         
@@ -144,8 +144,8 @@ router.delete('/eliminar/:id', verificarToken, async (req, res) => {
             return res.status(404).json({ error: 'Producto no encontrado' });
         }
         
-        console.log('✅ Producto eliminado:', producto.name);
-        res.json({ mensaje: '✅ Producto eliminado exitosamente' });
+        console.log(' Producto eliminado:', producto.name);
+        res.json({ mensaje: ' Producto eliminado exitosamente' });
         
     } catch (error) {
         console.error('Error eliminando producto:', error);
@@ -173,7 +173,7 @@ router.put('/reducir-stock/:productoId', verificarToken, async (req, res) => {
         await producto.save();
         
         res.json({ 
-            mensaje: '✅ Stock actualizado', 
+            mensaje: ' Stock actualizado', 
             nuevoStock: producto.stock 
         });
     } catch (error) {
@@ -201,7 +201,7 @@ router.post('/seed', async (req, res) => {
         await Product.deleteMany({});
         await Product.insertMany(productosIniciales);
         
-        res.json({ mensaje: '✅ Productos cargados exitosamente' });
+        res.json({ mensaje: ' Productos cargados exitosamente' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
