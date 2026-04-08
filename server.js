@@ -14,26 +14,43 @@ const mercadopagoClient = new MercadoPagoConfig({
     accessToken: process.env.MP_ACCESS_TOKEN || "APP_USR-5562521962692930-030522-9080c61c1567cf8b93f52eb8a9dfa477-3247325848"
 });
 
+app.use(express.json());
+
 app.use(cors({
-    origin: [
-        'https://luxecollection.org',
-        'https://www.luxecollection.org', 
-        'https://luxe-api-frr5.onrender.com',
-        'http://127.0.0.1:5500',
-        'http://localhost:5500',
-        'http://localhost:3000'
-    ],
+    origin: function(origin, callback) {
+        const allowedOrigins = [
+            'https://luxecollection.org',
+            'https://www.luxecollection.org', 
+            'https://luxe-api-frr5.onrender.com',
+            'http://127.0.0.1:5500',
+            'http://localhost:5500',
+            'http://localhost:3000'
+        ];
+        
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            console.log('CORS bloqueado para:', origin);
+            callback(null, true);
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
 
-app.options('*', (req, res) => {
+app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', req.headers.origin);
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.header('Access-Control-Allow-Credentials', 'true');
-    res.sendStatus(200);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+    
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
 });
 
 app.use(session({
@@ -181,6 +198,8 @@ app.post("/api/webhook-mercadopago", async (req, res) => {
 app.post('/api/newsletter', async (req, res) => {
     const { email } = req.body;
     
+    console.log('Peticion recibida en /api/newsletter:', email);
+    
     if (!email || !email.includes('@')) {
         return res.status(400).json({ exito: false, error: 'Email invalido' });
     }
@@ -188,11 +207,11 @@ app.post('/api/newsletter', async (req, res) => {
     try {
         await emailService.enviarNotificacionNewsletter(email);
         await emailService.enviarConfirmacionSuscripcion(email);
-        console.log('Newsletter suscrito:', email);
+        console.log('Newsletter suscrito exitosamente:', email);
         res.json({ exito: true, mensaje: 'Suscripcion exitosa' });
     } catch (error) {
         console.error('Error en newsletter:', error);
-        res.status(500).json({ exito: false, error: 'Error al enviar correo' });
+        res.status(500).json({ exito: false, error: 'Error al enviar correo: ' + error.message });
     }
 });
 
@@ -226,7 +245,7 @@ app.use('/api/orders', orderRoutes);
 app.get('/', (req, res) => {
     res.json({ 
         mensaje: 'API de Luxe Collection funcionando',
-        version: '2.3',
+        version: '2.4',
         endpoints: {
             auth: '/api/auth',
             google: '/api/auth/google',
@@ -246,7 +265,8 @@ app.get('/api/test', (req, res) => {
     res.json({ 
         mensaje: 'API funcionando correctamente',
         timestamp: new Date().toISOString(),
-        mercadopago: 'Configurado'
+        mercadopago: 'Configurado',
+        cors: 'Habilitado'
     });
 });
 
@@ -254,7 +274,7 @@ app.use((req, res) => {
     res.status(404).json({ error: 'Ruta no encontrada' });
 });
 
-app.use((err, req, res, next) => {
+app.use((err, err, req, res, next) => {
     console.error('Error del servidor:', err);
     res.status(500).json({ 
         error: 'Error interno del servidor',
@@ -267,11 +287,8 @@ app.listen(PORT, () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
     console.log(`Entorno: ${process.env.NODE_ENV || 'development'}`);
     console.log(`URL: http://localhost:${PORT}`);
-    console.log(`Google Auth Callback: http://localhost:${PORT}/auth/google/callback`);
-    console.log(`Mercado Pago: POST /api/crear-preferencia`);
     console.log(`Newsletter: POST /api/newsletter`);
     console.log(`Confirmacion Compra: POST /api/confirmar-compra`);
-    console.log(`El envio se incluye como un item adicional en Mercado Pago`);
 });
 
 process.on('uncaughtException', (err) => {
