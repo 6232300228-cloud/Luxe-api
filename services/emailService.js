@@ -1,20 +1,17 @@
-// services/emailService.js
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-    host: 'smtp.hostinger.com',
-    port: 465,
-    secure: true,
+    service: 'gmail',
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        user: 'tiendaluxeedb@gmail.com',
+        pass: 'scmv fyoo knrw seij'
     }
 });
 
 const enviarCorreo = async (destinatario, asunto, html) => {
     try {
         const info = await transporter.sendMail({
-            from: '"Luxe Collection" <LuxeCollection@luxecollection.org>',
+            from: '"Luxe Collection" <tiendaluxeedb@gmail.com>',
             to: destinatario,
             subject: asunto,
             html: html
@@ -37,7 +34,7 @@ const enviarNotificacionNewsletter = async (emailSuscrito) => {
         <hr>
         <p>Luxe Collection</p>
     `;
-    return enviarCorreo('LuxeCollection@luxecollection.org', asunto, html);
+    return enviarCorreo('tiendaluxeedb@gmail.com', asunto, html);
 };
 
 const enviarConfirmacionSuscripcion = async (emailUsuario) => {
