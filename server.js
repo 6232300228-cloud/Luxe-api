@@ -274,11 +274,11 @@ app.use((req, res) => {
     res.status(404).json({ error: 'Ruta no encontrada' });
 });
 
-app.use((err, err, req, res, next) => {
-    console.error('Error del servidor:', err);
+app.use((error, req, res, next) => {
+    console.error('Error del servidor:', error);
     res.status(500).json({ 
         error: 'Error interno del servidor',
-        message: err.message 
+        message: error.message 
     });
 });
 
