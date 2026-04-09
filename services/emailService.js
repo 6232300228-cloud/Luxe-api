@@ -315,15 +315,231 @@ const enviarConfirmacionSuscripcion = async (emailUsuario) => {
 
 const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
     const asunto = 'Confirmacion de tu compra - Luxe Collection';
+    
+    // Calcular el total de la compra
+    let totalCompra = 0;
+    let itemsHtml = '';
+    
+    if (datosCompra && datosCompra.items && datosCompra.items.length > 0) {
+        datosCompra.items.forEach(item => {
+            const subtotal = item.precio * item.cantidad;
+            totalCompra += subtotal;
+            itemsHtml += `
+                <div style="display: flex; align-items: center; gap: 15px; padding: 15px 0; border-bottom: 1px solid #f2f2f2;">
+                    <img src="${item.img || 'https://luxecollection.org/img/logo.png'}" alt="${item.nombre}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 10px;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; color: #333;">${item.nombre}</div>
+                        <div style="color: #666; font-size: 12px;">Cantidad: ${item.cantidad}</div>
+                    </div>
+                    <div style="color: #ff4d6d; font-weight: bold;">$${subtotal.toFixed(2)}</div>
+                </div>
+            `;
+        });
+    }
+    
+    const envioCosto = datosCompra.envio || 0;
+    const totalFinal = totalCompra + envioCosto;
+    
     const html = `
-        <h2>Gracias por tu compra</h2>
-        <p>Hemos recibido tu pedido correctamente.</p>
-        <p><strong>Detalles del pedido:</strong></p>
-        <pre>${JSON.stringify(datosCompra, null, 2)}</pre>
-        <p>En breve recibiras informacion de envio y seguimiento.</p>
-        <hr>
-        <p>Luxe Collection - Elegancia que inspira</p>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luxe Collection - Confirmacion de Compra</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #fff0f6;
+      font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+    }
+    .header {
+      background: #ffe4ec;
+      padding: 30px 20px;
+      text-align: center;
+    }
+    .logo-img {
+      max-width: 120px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+      border-radius: 50%;
+      background-color: white;
+      padding: 10px;
+    }
+    .brand-name {
+      color: #ff4d6d;
+      font-size: 24px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      margin-top: 12px;
+    }
+    .slogan {
+      color: #666;
+      font-size: 11px;
+      letter-spacing: 1px;
+      margin-top: 5px;
+    }
+    .hero {
+      background: linear-gradient(135deg, #fff0f6 0%, #ffe4ec 100%);
+      padding: 30px 20px;
+      text-align: center;
+    }
+    .hero h2 {
+      color: #333;
+      font-size: 26px;
+      margin: 0 0 10px;
+    }
+    .hero p {
+      color: #666;
+      font-size: 15px;
+    }
+    .badge {
+      background: #28a745;
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      color: white;
+      font-size: 11px;
+    }
+    .content {
+      padding: 30px 24px;
+    }
+    .section-title {
+      font-size: 20px;
+      color: #333;
+      border-left: 3px solid #28a745;
+      padding-left: 15px;
+      margin: 30px 0 20px;
+    }
+    .order-number {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .order-number span {
+      font-weight: bold;
+      color: #ff4d6d;
+    }
+    .summary-card {
+      background: #f8f9fa;
+      border-radius: 16px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+    .summary-row.total {
+      border-top: 1px solid #ddd;
+      margin-top: 8px;
+      padding-top: 12px;
+      font-weight: bold;
+      font-size: 18px;
+      color: #ff4d6d;
+    }
+    .btn-primary {
+      background: #ff4d6d;
+      color: white;
+      padding: 14px 30px;
+      border-radius: 50px;
+      text-decoration: none;
+      display: inline-block;
+      margin: 20px 0;
+    }
+    .footer {
+      background: #fff5f7;
+      color: #666;
+      text-align: center;
+      padding: 25px;
+      font-size: 12px;
+      border-top: 1px solid #ffccd5;
+    }
+    .footer a {
+      color: #ff4d6d;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <div class="header">
+      <img src="https://luxecollection.org/img/logo.png" alt="Luxe Collection" class="logo-img">
+      <div class="brand-name">LUXE COLLECTION</div>
+      <div class="slogan">TU DESTINO DE BELLEZA</div>
+    </div>
+
+    <div class="hero">
+      <span class="badge">PAGO CONFIRMADO</span>
+      <h2>¡Gracias por tu compra!</h2>
+      <p>Hemos recibido tu pedido correctamente</p>
+    </div>
+
+    <div class="content">
+      
+      <div class="order-number">
+        Pedido #: <span>${datosCompra.numeroPedido || Date.now().toString().slice(-8)}</span>
+      </div>
+
+      <div class="section-title">Resumen de tu pedido</div>
+      
+      ${itemsHtml || '<p>No hay productos en el pedido</p>'}
+      
+      <div class="summary-card">
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <span>$${totalCompra.toFixed(2)}</span>
+        </div>
+        <div class="summary-row">
+          <span>Envío</span>
+          <span>$${envioCosto.toFixed(2)}</span>
+        </div>
+        <div class="summary-row total">
+          <span>TOTAL</span>
+          <span>$${totalFinal.toFixed(2)} MXN</span>
+        </div>
+      </div>
+
+      <div class="section-title">Informacion de envio</div>
+      <div style="background: #fff5f7; padding: 15px; border-radius: 12px;">
+        <p><strong>Dirección:</strong> ${datosCompra.direccion || 'Pendiente de confirmar'}</p>
+        <p><strong>Metodo de pago:</strong> ${datosCompra.metodoPago || 'Mercado Pago'}</p>
+      </div>
+
+      <div style="background: #fff5f7; padding: 15px; border-radius: 12px; margin-top: 20px;">
+        <p><strong>¿Qué sigue?</strong></p>
+        <p>En las próximas 24 horas recibirás un correo con el número de guía y seguimiento de tu pedido.</p>
+      </div>
+
+      <center>
+        <a href="https://luxecollection.org" class="btn-primary">SEGUIR COMPRANDO</a>
+      </center>
+    </div>
+
+    <div class="footer">
+      <strong>LUXE COLLECTION</strong><br>
+      Tu destino de belleza<br><br>
+      ¿Preguntas? Escríbenos a <a href="mailto:LuxeCollection@luxecollection.org">LuxeCollection@luxecollection.org</a><br>
+      2026 Luxe Collection
+    </div>
+  </div>
+</body>
+</html>
     `;
+    
     return enviarCorreo(emailCliente, asunto, html);
 };
 
