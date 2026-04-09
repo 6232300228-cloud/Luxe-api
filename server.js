@@ -205,13 +205,18 @@ app.post('/api/newsletter', async (req, res) => {
     }
     
     try {
-        await emailService.enviarNotificacionNewsletter(email);
-        await emailService.enviarConfirmacionSuscripcion(email);
-        console.log('Newsletter suscrito exitosamente:', email);
-        res.json({ exito: true, mensaje: 'Suscripcion exitosa' });
+        const resultado = await emailService.enviarConfirmacionSuscripcion(email);
+        
+        if (resultado.exito) {
+            console.log('Suscriptor añadido a Brevo:', email);
+            res.json({ exito: true, mensaje: 'Suscripcion exitosa. Revisa tu correo.' });
+        } else {
+            console.error('Error al añadir a Brevo:', resultado.error);
+            res.status(500).json({ exito: false, error: 'Error al procesar la suscripcion' });
+        }
     } catch (error) {
         console.error('Error en newsletter:', error);
-        res.status(500).json({ exito: false, error: 'Error al enviar correo: ' + error.message });
+        res.status(500).json({ exito: false, error: 'Error al procesar la suscripcion: ' + error.message });
     }
 });
 
