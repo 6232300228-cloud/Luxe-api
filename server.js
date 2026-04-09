@@ -179,7 +179,37 @@ app.post("/api/crear-preferencia", async (req, res) => {
 app.post("/api/webhook-mercadopago", async (req, res) => {
     try {
         const { type, data } = req.body;
+        
         console.log('Webhook recibido:', { type, data });
+        
+        if (type === "payment") {
+            const paymentId = data.id;
+            console.log('Procesando pago ID:', paymentId);
+            
+            // Obtener detalles del pago desde Mercado Pago
+            const accessToken = process.env.MP_ACCESS_TOKEN || "APP_USR-5562521962692930-030522-9080c61c1567cf8b93f52eb8a9dfa477-3247325848";
+            
+            const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+            
+            const payment = await response.json();
+            console.log('Detalles del pago:', payment);
+            
+            if (payment.status === 'approved') {
+                console.log('Pago aprobado para el pedido:', payment.external_reference);
+                
+                // Aqui deberias guardar el pedido en tu base de datos
+                // Si tienes un modelo Order, crealo aqui
+                
+                // Por ahora, guardamos en localStorage via una respuesta
+                // Pero lo ideal es guardar en MongoDB
+            }
+        }
+        
         res.status(200).json({ received: true });
     } catch (error) {
         console.error('Error en webhook:', error);
