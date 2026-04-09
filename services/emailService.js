@@ -316,20 +316,23 @@ const enviarConfirmacionSuscripcion = async (emailUsuario) => {
 const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
     const asunto = 'Confirmacion de tu compra - Luxe Collection';
     
-    // Calcular el total de la compra
-    let totalCompra = 0;
     let itemsHtml = '';
+    let totalCompra = 0;
     
-    if (datosCompra && datosCompra.items && datosCompra.items.length > 0) {
-        datosCompra.items.forEach(item => {
-            const subtotal = item.precio * item.cantidad;
+    if (datosCompra && datosCompra.productos && datosCompra.productos.length > 0) {
+        datosCompra.productos.forEach(item => {
+            const cantidad = item.cantidad || 1;
+            const precio = item.precio || 0;
+            const subtotal = precio * cantidad;
             totalCompra += subtotal;
             itemsHtml += `
                 <div style="display: flex; align-items: center; gap: 15px; padding: 15px 0; border-bottom: 1px solid #f2f2f2;">
-                    <img src="${item.img || 'https://luxecollection.org/img/logo.png'}" alt="${item.nombre}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 10px;">
+                    <div style="width: 60px; height: 60px; background: #ffe4ec; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                        💄
+                    </div>
                     <div style="flex: 1;">
-                        <div style="font-weight: bold; color: #333;">${item.nombre}</div>
-                        <div style="color: #666; font-size: 12px;">Cantidad: ${item.cantidad}</div>
+                        <div style="font-weight: bold; color: #333;">${item.nombre || 'Producto'}</div>
+                        <div style="color: #666; font-size: 12px;">Cantidad: ${cantidad}</div>
                     </div>
                     <div style="color: #ff4d6d; font-weight: bold;">$${subtotal.toFixed(2)}</div>
                 </div>
@@ -339,6 +342,8 @@ const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
     
     const envioCosto = datosCompra.envio || 0;
     const totalFinal = totalCompra + envioCosto;
+    const fecha = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+    const numeroPedido = Math.floor(Math.random() * 1000000);
     
     const html = `
 <!DOCTYPE html>
@@ -491,7 +496,8 @@ const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
     <div class="content">
       
       <div class="order-number">
-        Pedido #: <span>${datosCompra.numeroPedido || Date.now().toString().slice(-8)}</span>
+        Pedido #: <span>${numeroPedido}</span><br>
+        <small>${fecha}</small>
       </div>
 
       <div class="section-title">Resumen de tu pedido</div>
@@ -504,8 +510,8 @@ const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
           <span>$${totalCompra.toFixed(2)}</span>
         </div>
         <div class="summary-row">
-          <span>Envío</span>
-          <span>$${envioCosto.toFixed(2)}</span>
+          <span>Envio</span>
+          <span>${envioCosto === 0 ? 'GRATIS' : '$' + envioCosto.toFixed(2)}</span>
         </div>
         <div class="summary-row total">
           <span>TOTAL</span>
@@ -515,13 +521,13 @@ const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
 
       <div class="section-title">Informacion de envio</div>
       <div style="background: #fff5f7; padding: 15px; border-radius: 12px;">
-        <p><strong>Dirección:</strong> ${datosCompra.direccion || 'Pendiente de confirmar'}</p>
-        <p><strong>Metodo de pago:</strong> ${datosCompra.metodoPago || 'Mercado Pago'}</p>
+        <p><strong>Direccion:</strong> ${datosCompra.direccion || 'Pendiente de confirmar'}</p>
+        <p><strong>Metodo de pago:</strong> ${datosCompra.metodoPago === 'mercadopago' ? 'Mercado Pago' : 'Tarjeta de Credito/Debito'}</p>
       </div>
 
       <div style="background: #fff5f7; padding: 15px; border-radius: 12px; margin-top: 20px;">
-        <p><strong>¿Qué sigue?</strong></p>
-        <p>En las próximas 24 horas recibirás un correo con el número de guía y seguimiento de tu pedido.</p>
+        <p><strong>Que sigue?</strong></p>
+        <p>En las proximas 24 horas recibiras un correo con el numero de guia y seguimiento de tu pedido.</p>
       </div>
 
       <center>
