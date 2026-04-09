@@ -16,31 +16,50 @@ const mercadopagoClient = new MercadoPagoConfig({
 
 app.use(express.json());
 
+// ============================================
+// CONFIGURACION CORS CORREGIDA
+// ============================================
 app.use(cors({
-    origin: ['https://luxecollection.org', 'https://www.luxecollection.org', 'https://luxe-api-frr5.onrender.com', 'http://localhost:5500', 'http://127.0.0.1:5500', 'http://localhost:3000'],
+    origin: function(origin, callback) {
+        const allowedOrigins = [
+            'https://luxecollection.org',
+            'https://www.luxecollection.org',
+            'https://luxe-api-frr5.onrender.com',
+            'http://127.0.0.1:5500',
+            'http://localhost:5500',
+            'http://localhost:3000'
+        ];
+        
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            console.log('CORS bloqueado para:', origin);
+            callback(null, true);
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
 
-// Middleware manual para asegurar CORS
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', req.headers.origin || 'https://luxecollection.org');
+    const allowedOrigins = [
+        'https://luxecollection.org',
+        'https://www.luxecollection.org',
+        'https://luxe-api-frr5.onrender.com',
+        'http://127.0.0.1:5500',
+        'http://localhost:5500',
+        'http://localhost:3000'
+    ];
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+    }
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-    
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
-    }
-    next();
-});
-
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', req.headers.origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
     
     if (req.method === 'OPTIONS') {
         return res.sendStatus(200);
@@ -70,6 +89,9 @@ mongoose.connect(process.env.MONGODB_URI)
         process.exit(1);
     });
 
+// ============================================
+// RUTAS DE AUTENTICACION
+// ============================================
 app.get('/api/auth/google', 
     passport.authenticate('google', { 
         scope: ['profile', 'email'],
@@ -96,22 +118,15 @@ app.get('/auth/google/callback',
     }
 );
 
+// ============================================
+// MERCADO PAGO
+// ============================================
 app.post("/api/crear-preferencia", async (req, res) => {
     try {
         const { items, envio, payer } = req.body;
         
         if (!items || items.length === 0) {
-            return res.status(400).json({ 
-                error: "El carrito esta vacio" 
-            });
-        }
-
-        for (const producto of items) {
-            if (!producto.nombre || !producto.precio) {
-                return res.status(400).json({ 
-                    error: "Datos de producto invalidos" 
-                });
-            }
+            return res.status(400).json({ error: "El carrito esta vacio" });
         }
 
         const productosMP = items.map(producto => ({
@@ -131,9 +146,6 @@ app.post("/api/crear-preferencia", async (req, res) => {
                 currency_id: "MXN"
             });
         }
-        
-        console.log('Productos a pagar:', productosMP);
-        console.log('Total con envio:', productosMP.reduce((sum, p) => sum + (p.unit_price * p.quantity), 0));
 
         const preference = new Preference(mercadopagoClient);
 
@@ -143,9 +155,7 @@ app.post("/api/crear-preferencia", async (req, res) => {
                 payer: payer ? {
                     name: payer.name,
                     email: payer.email,
-                    address: {
-                        street_name: payer.address
-                    }
+                    address: { street_name: payer.address }
                 } : undefined,
                 back_urls: {
                     success: "https://luxecollection.org/success.html",
@@ -158,31 +168,18 @@ app.post("/api/crear-preferencia", async (req, res) => {
             }
         });
 
-        res.json({
-            init_point: result.init_point,
-            id: result.id
-        });
+        res.json({ init_point: result.init_point, id: result.id });
 
     } catch (error) {
         console.error('Error en Mercado Pago:', error);
-        res.status(500).json({ 
-            error: "Error al crear el pago",
-            details: error.message 
-        });
+        res.status(500).json({ error: "Error al crear el pago", details: error.message });
     }
 });
 
 app.post("/api/webhook-mercadopago", async (req, res) => {
     try {
         const { type, data } = req.body;
-        
         console.log('Webhook recibido:', { type, data });
-        
-        if (type === "payment") {
-            const paymentId = data.id;
-            console.log('Pago recibido ID:', paymentId);
-        }
-        
         res.status(200).json({ received: true });
     } catch (error) {
         console.error('Error en webhook:', error);
@@ -190,6 +187,9 @@ app.post("/api/webhook-mercadopago", async (req, res) => {
     }
 });
 
+// ============================================
+// NEWSLETTER
+// ============================================
 app.post('/api/newsletter', async (req, res) => {
     const { email } = req.body;
     
@@ -210,6 +210,9 @@ app.post('/api/newsletter', async (req, res) => {
     }
 });
 
+// ============================================
+// CONFIRMAR COMPRA
+// ============================================
 app.post('/api/confirmar-compra', async (req, res) => {
     const { emailCliente, datosCompra } = req.body;
     
@@ -227,6 +230,9 @@ app.post('/api/confirmar-compra', async (req, res) => {
     }
 });
 
+// ============================================
+// RUTAS
+// ============================================
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const cartRoutes = require('./routes/cart');
@@ -237,10 +243,13 @@ app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 
+// ============================================
+// TEST Y RAIZ
+// ============================================
 app.get('/', (req, res) => {
     res.json({ 
         mensaje: 'API de Luxe Collection funcionando',
-        version: '2.4',
+        version: '2.5',
         endpoints: {
             auth: '/api/auth',
             google: '/api/auth/google',
@@ -265,6 +274,9 @@ app.get('/api/test', (req, res) => {
     });
 });
 
+// ============================================
+// MANEJO DE ERRORES
+// ============================================
 app.use((req, res) => {
     res.status(404).json({ error: 'Ruta no encontrada' });
 });
@@ -282,8 +294,6 @@ app.listen(PORT, () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
     console.log(`Entorno: ${process.env.NODE_ENV || 'development'}`);
     console.log(`URL: http://localhost:${PORT}`);
-    console.log(`Newsletter: POST /api/newsletter`);
-    console.log(`Confirmacion Compra: POST /api/confirmar-compra`);
 });
 
 process.on('uncaughtException', (err) => {
