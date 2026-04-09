@@ -1,46 +1,55 @@
-const fetch = require('node-fetch');
+const nodemailer = require('nodemailer');
 
-const BREVO_API_KEY = process.env.BREVO_API_KEY;
-const BREVO_LISTA_ID = 5;
+const transporter = nodemailer.createTransport({
+    host: 'smtp.hostinger.com',
+    port: 465,
+    secure: true,
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
 
-const anadirContactoABrevo = async (email) => {
+const enviarCorreo = async (destinatario, asunto, html) => {
     try {
-        const response = await fetch('https://api.brevo.com/v3/contacts', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'api-key': BREVO_API_KEY
-            },
-            body: JSON.stringify({
-                email: email,
-                listIds: [BREVO_LISTA_ID],
-                updateEnabled: true
-            })
+        const info = await transporter.sendMail({
+            from: '"Luxe Collection" <LuxeCollection@luxecollection.org>',
+            to: destinatario,
+            subject: asunto,
+            html: html
         });
-        
-        if (!response.ok) {
-            const error = await response.text();
-            console.error('Error Brevo:', error);
-            return { exito: false, error: error };
-        }
-        
-        console.log('Contacto añadido a Brevo:', email);
-        return { exito: true };
-        
+        console.log('Correo enviado:', info.messageId);
+        return { exito: true, messageId: info.messageId };
     } catch (error) {
-        console.error('Error conectando con Brevo:', error);
+        console.error('Error enviando correo:', error);
         return { exito: false, error: error.message };
     }
 };
 
 const enviarNotificacionNewsletter = async (emailSuscrito) => {
-    console.log('Nuevo suscriptor:', emailSuscrito);
-    return { exito: true };
+    const asunto = 'Nueva suscripcion al newsletter';
+    const html = `
+        <h2>Nueva suscripcion al Club Luxe</h2>
+        <p><strong>Email:</strong> ${emailSuscrito}</p>
+        <p><strong>Fecha:</strong> ${new Date().toLocaleString()}</p>
+        <p>Este usuario se ha suscrito al newsletter.</p>
+        <hr>
+        <p>Luxe Collection</p>
+    `;
+    return enviarCorreo('LuxeCollection@luxecollection.org', asunto, html);
 };
 
 const enviarConfirmacionSuscripcion = async (emailUsuario) => {
-    console.log('Añadiendo suscriptor a Brevo:', emailUsuario);
-    return anadirContactoABrevo(emailUsuario);
+    const asunto = 'Bienvenida al Club Luxe';
+    const html = `
+        <h2>Bienvenida a Luxe Collection</h2>
+        <p>Gracias por suscribirte al Club Luxe.</p>
+        <p>Recibiras nuestras mejores ofertas exclusivas directamente en tu correo.</p>
+        <p>Pronto recibiras novedades y promociones especiales.</p>
+        <hr>
+        <p>Luxe Collection - Elegancia que inspira</p>
+    `;
+    return enviarCorreo(emailUsuario, asunto, html);
 };
 
 const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
@@ -54,35 +63,12 @@ const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
         <hr>
         <p>Luxe Collection - Elegancia que inspira</p>
     `;
-    
-    const nodemailer = require('nodemailer');
-    const transporter = nodemailer.createTransport({
-        host: 'smtp.hostinger.com',
-        port: 465,
-        secure: true,
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-        }
-    });
-    
-    try {
-        const info = await transporter.sendMail({
-            from: '"Luxe Collection" <LuxeCollection@luxecollection.org>',
-            to: emailCliente,
-            subject: asunto,
-            html: html
-        });
-        return { exito: true, messageId: info.messageId };
-    } catch (error) {
-        console.error('Error enviando confirmacion de compra:', error);
-        return { exito: false, error: error.message };
-    }
+    return enviarCorreo(emailCliente, asunto, html);
 };
 
 module.exports = { 
+    enviarCorreo,
     enviarNotificacionNewsletter,
     enviarConfirmacionSuscripcion,
-    enviarConfirmacionCompra,
-    anadirContactoABrevo
+    enviarConfirmacionCompra
 };
