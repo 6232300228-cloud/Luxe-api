@@ -17,29 +17,24 @@ const mercadopagoClient = new MercadoPagoConfig({
 app.use(express.json());
 
 app.use(cors({
-    origin: function(origin, callback) {
-        const allowedOrigins = [
-            'https://luxecollection.org',
-            'https://www.luxecollection.org', 
-            'https://luxe-api-frr5.onrender.com',
-            'http://127.0.0.1:5500',
-            'http://localhost:5500',
-            'http://localhost:3000'
-        ];
-        
-        if (!origin) return callback(null, true);
-        
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            console.log('CORS bloqueado para:', origin);
-            callback(null, true);
-        }
-    },
+    origin: ['https://luxecollection.org', 'https://www.luxecollection.org', 'https://luxe-api-frr5.onrender.com', 'http://localhost:5500', 'http://127.0.0.1:5500', 'http://localhost:3000'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
+
+// Middleware manual para asegurar CORS
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin || 'https://luxecollection.org');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', req.headers.origin);
