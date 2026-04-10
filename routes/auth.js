@@ -27,7 +27,30 @@ const verificarToken = (req, res, next) => {
         return res.status(401).json({ error: 'Token inválido' });
     }
 };
-
+// ============================================
+// OBTENER TODOS LOS USUARIOS (SOLO ADMIN)
+// ============================================
+router.get('/usuarios', verificarToken, async (req, res) => {
+    try {
+        // Verificar que el usuario sea admin
+        const usuarioActual = await User.findById(req.usuarioId);
+        
+        if (usuarioActual.role !== 'admin') {
+            return res.status(403).json({ error: 'Acceso denegado. Se requieren permisos de administrador.' });
+        }
+        
+        // Obtener todos los usuarios, excluyendo contraseñas
+        const usuarios = await User.find({}).select('-contraseña').sort({ fechaRegistro: -1 });
+        
+        console.log(`📋 Admin ${usuarioActual.nombre} consultó ${usuarios.length} usuarios`);
+        
+        res.json(usuarios);
+        
+    } catch (error) {
+        console.error('Error al obtener usuarios:', error);
+        res.status(500).json({ error: 'Error al obtener la lista de usuarios' });
+    }
+});
 // ============================================
 // REGISTRO - SIN VERIFICACIÓN DE CORREO
 // ============================================
