@@ -258,19 +258,19 @@ const enviarConfirmacionSuscripcion = async (emailUsuario) => {
       <div class="section-title">Mas vendidos</div>
       <div class="products-grid">
         <div class="product">
-          <img src="img/serum.jpg" alt="Serum Vitamina C" class="product-img">
+          <img src="https://luxecollection.org/img/serum.jpg" alt="Serum Vitamina C" class="product-img">
           <div class="product-title">Serum Vitamina C</div>
           <div><span class="price">$350.90</span> <span class="old-price">$469.90</span></div>
           <a href="https://luxecollection.org" class="btn-product">Comprar</a>
         </div>
         <div class="product">
-          <img src="img/mascarilla.jpg" alt="Mascarilla Hydra" class="product-img">
+          <img src="https://luxecollection.org/img/mascarilla.jpg" alt="Mascarilla Hydra" class="product-img">
           <div class="product-title">Mascarilla Hydra</div>
           <div><span class="price">$19.90</span> <span class="old-price">$35.90</span></div>
           <a href="https://luxecollection.org" class="btn-product">Comprar</a>
         </div>
         <div class="product">
-          <img src="img/ilu2.png" alt="Iluminador Glow" class="product-img">
+          <img src="https://luxecollection.org/img/ilu2.png" alt="Iluminador Glow" class="product-img">
           <div class="product-title">Iluminador Glow</div>
           <div><span class="price">$599.90</span> <span class="old-price">$715.90</span></div>
           <a href="https://luxecollection.org" class="btn-product">Comprar</a>
@@ -280,7 +280,7 @@ const enviarConfirmacionSuscripcion = async (emailUsuario) => {
       <div class="section-title">Oferta para nuevos suscriptores</div>
       <div class="offer-card">
         <div class="offer-img">
-          <img src="img/destello.png" alt="Regalo">
+          <img src="https://luxecollection.org/img/destello.png" alt="Regalo">
         </div>
         <div class="offer-text">
           <strong>15% de descuento en tu primera compra</strong><br>
@@ -292,12 +292,12 @@ const enviarConfirmacionSuscripcion = async (emailUsuario) => {
       <div class="section-title">Proximos lanzamientos</div>
       <div class="products-grid">
         <div class="product">
-          <img src="img/cole.jpeg" alt="Coleccion Primavera" class="product-img">
+          <img src="https://luxecollection.org/img/cole.jpeg" alt="Coleccion Primavera" class="product-img">
           <div class="product-title">Coleccion Primavera</div>
           <small>Disponible: 20/04/2026</small>
         </div>
         <div class="product">
-          <img src="img/somb.jpeg" alt="Paleta Gold Edition" class="product-img">
+          <img src="https://luxecollection.org/img/somb.jpeg" alt="Paleta Gold Edition" class="product-img">
           <div class="product-title">Paleta de sombras Maybelline</div>
           <small>Preventa exclusiva</small>
         </div>
