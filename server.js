@@ -176,7 +176,7 @@ app.post("/api/crear-preferencia", async (req, res) => {
     }
 });
 
-aapp.post("/api/webhook-mercadopago", async (req, res) => {
+app.post("/api/webhook-mercadopago", async (req, res) => {
     try {
         const { type, data } = req.body;
         
