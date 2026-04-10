@@ -325,18 +325,21 @@ const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
             const precio = item.precio || 0;
             const subtotal = precio * cantidad;
             totalCompra += subtotal;
-            itemsHtml += `
-                <div style="display: flex; align-items: center; gap: 15px; padding: 15px 0; border-bottom: 1px solid #f2f2f2;">
-                    <div style="width: 60px; height: 60px; background: #ffe4ec; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
-                        💄
-                    </div>
-                    <div style="flex: 1;">
-                        <div style="font-weight: bold; color: #333;">${item.nombre || 'Producto'}</div>
-                        <div style="color: #666; font-size: 12px;">Cantidad: ${cantidad}</div>
-                    </div>
-                    <div style="color: #ff4d6d; font-weight: bold;">$${subtotal.toFixed(2)}</div>
-                </div>
-            `;
+         itemsHtml += `
+    <div style="display: flex; align-items: center; gap: 15px; padding: 15px 0; border-bottom: 1px solid #f2f2f2;">
+        <div style="width: 60px; height: 60px; border-radius: 10px; overflow: hidden; background: #ffe4ec; display: flex; align-items: center; justify-content: center;">
+            ${item.imagen ? 
+                `<img src="${item.imagen}" alt="${item.nombre}" style="width: 100%; height: 100%; object-fit: cover;">` : 
+                `<span style="font-size: 24px;">💄</span>`
+            }
+        </div>
+        <div style="flex: 1;">
+            <div style="font-weight: bold; color: #333;">${item.nombre || 'Producto'}</div>
+            <div style="color: #666; font-size: 12px;">Cantidad: ${cantidad}</div>
+        </div>
+        <div style="color: #ff4d6d; font-weight: bold;">$${subtotal.toFixed(2)}</div>
+    </div>
+`;
         });
     }
     
