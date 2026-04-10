@@ -142,13 +142,14 @@ const enviarConfirmacionSuscripcion = async (emailUsuario) => {
     .product-img {
       width: 100%;
       height: 150px;
-      object-fit: contain;
-      padding: 15px;
+      object-fit: cover;
+      border-radius: 16px 16px 0 0;
     }
     .product-title {
       font-weight: bold;
       color: #333;
       font-size: 14px;
+      margin-top: 10px;
     }
     .price {
       color: #ff4d6d;
@@ -190,7 +191,12 @@ const enviarConfirmacionSuscripcion = async (emailUsuario) => {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 40px;
+      overflow: hidden;
+    }
+    .offer-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
     .offer-code {
       background: #ff4d6d;
@@ -252,28 +258,30 @@ const enviarConfirmacionSuscripcion = async (emailUsuario) => {
       <div class="section-title">Mas vendidos</div>
       <div class="products-grid">
         <div class="product">
-          <div class="product-img">💄</div>
+          <img src="img/serum.jpg" alt="Serum Vitamina C" class="product-img">
           <div class="product-title">Serum Vitamina C</div>
-          <div><span class="price">$29.90</span> <span class="old-price">$49.90</span></div>
+          <div><span class="price">$350.90</span> <span class="old-price">$469.90</span></div>
           <a href="https://luxecollection.org" class="btn-product">Comprar</a>
         </div>
         <div class="product">
-          <div class="product-img">🧴</div>
+          <img src="img/mascarilla.jpg" alt="Mascarilla Hydra" class="product-img">
           <div class="product-title">Mascarilla Hydra</div>
           <div><span class="price">$19.90</span> <span class="old-price">$35.90</span></div>
           <a href="https://luxecollection.org" class="btn-product">Comprar</a>
         </div>
         <div class="product">
-          <div class="product-img">✨</div>
+          <img src="img/ilu2.png" alt="Iluminador Glow" class="product-img">
           <div class="product-title">Iluminador Glow</div>
-          <div><span class="price">$15.90</span></div>
+          <div><span class="price">$599.90</span> <span class="old-price">$715.90</span></div>
           <a href="https://luxecollection.org" class="btn-product">Comprar</a>
         </div>
       </div>
 
       <div class="section-title">Oferta para nuevos suscriptores</div>
       <div class="offer-card">
-        <div class="offer-img">🎁</div>
+        <div class="offer-img">
+          <img src="img/destello.png" alt="Regalo">
+        </div>
         <div class="offer-text">
           <strong>15% de descuento en tu primera compra</strong><br>
           Usa el código:
@@ -284,13 +292,13 @@ const enviarConfirmacionSuscripcion = async (emailUsuario) => {
       <div class="section-title">Proximos lanzamientos</div>
       <div class="products-grid">
         <div class="product">
-          <div class="product-img">🌸</div>
+          <img src="img/cole.jpeg" alt="Coleccion Primavera" class="product-img">
           <div class="product-title">Coleccion Primavera</div>
           <small>Disponible: 20/04/2026</small>
         </div>
         <div class="product">
-          <div class="product-img">👑</div>
-          <div class="product-title">Paleta Gold Edition</div>
+          <img src="img/somb.jpeg" alt="Paleta Gold Edition" class="product-img">
+          <div class="product-title">Paleta de sombras Maybelline</div>
           <small>Preventa exclusiva</small>
         </div>
       </div>
