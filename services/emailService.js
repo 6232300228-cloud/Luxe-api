@@ -321,28 +321,37 @@ const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
     let itemsHtml = '';
     let totalCompra = 0;
     
-     console.log('🔍 VERIFICANDO PRODUCTOS:');
-    console.log('datosCompra.productos:', JSON.stringify(datosCompra.productos, null, 2));
-    
     if (datosCompra && datosCompra.productos && datosCompra.productos.length > 0) {
         datosCompra.productos.forEach(item => {
-            console.log(`📦 Producto: ${item.name}`);
-            console.log(`   - img: ${item.img}`);  // ← Ver si existe
-            console.log(`   - price: ${item.price}`);
-            
             const cantidad = item.cantidad || 1;
             const precio = item.price || 0;
             const subtotal = precio * cantidad;
             totalCompra += subtotal;
             
-            const imagenCompleta = item.img ? `${DOMINIO_BASE}/${item.img}` : null;
-            console.log(`   - URL imagen: ${imagenCompleta || 'NO HAY IMAGEN'}`);
+            // 🔥 Construcción de la URL
+            let imagenUrl = null;
+            if (item.img) {
+                if (item.img.startsWith('http')) {
+                    imagenUrl = item.img;
+                } else {
+                    const rutaLimpia = item.img.replace(/^\/+/, '');
+                    imagenUrl = `${DOMINIO_BASE}/${rutaLimpia}`;
+                }
+            }
+            
+            // ✅ ESTOS SON LOS DEBUGS - Así tal cual los pones
+            console.log(`🖼️ Producto: ${item.name}`);
+            console.log(`   Ruta BD: ${item.img}`);
+            console.log(`   URL final: ${imagenUrl}`);
+            // Fin de los debugs
+            
             itemsHtml += `
                 <div style="display: flex; align-items: center; gap: 15px; padding: 15px 0; border-bottom: 1px solid #f2f2f2;">
-                    <div style="width: 60px; height: 60px; border-radius: 10px; overflow: hidden; background: #ffe4ec; display: flex; align-items: center; justify-content: center;">
-                        ${imagenCompleta ? 
-                            `<img src="${imagenCompleta}" alt="${item.name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.parentElement.innerHTML='<span style=\"font-size:24px;\">💄</span>';">` : 
-                            `<span style="font-size: 24px;">💄</span>`
+                    <div style="width: 70px; height: 70px; border-radius: 10px; overflow: hidden; background: #ffe4ec; display: flex; align-items: center; justify-content: center;">
+                        ${imagenUrl ? 
+                            `<img src="${imagenUrl}" alt="${item.name}" style="width: 100%; height: 100%; object-fit: cover;" 
+                                  onerror="this.onerror=null; this.parentElement.innerHTML='<span style=\"font-size:32px;\">💄</span>';">` : 
+                            `<span style="font-size: 32px;">💄</span>`
                         }
                     </div>
                     <div style="flex: 1;">
