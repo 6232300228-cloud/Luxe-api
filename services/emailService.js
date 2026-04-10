@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
-
+// Al inicio de tu archivo, después de los requires
+const DOMINIO_BASE = 'https://luxecollection.org'; // ← Tu dominio real
 const transporter = nodemailer.createTransport({
     host: 'smtp.hostinger.com',
     port: 465,
@@ -313,6 +314,7 @@ const enviarConfirmacionSuscripcion = async (emailUsuario) => {
     return enviarCorreo(emailUsuario, asunto, html);
 };
 
+
 const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
     const asunto = 'Confirmacion de tu compra - Luxe Collection';
     
@@ -322,26 +324,33 @@ const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
     if (datosCompra && datosCompra.productos && datosCompra.productos.length > 0) {
         datosCompra.productos.forEach(item => {
             const cantidad = item.cantidad || 1;
-            const precio = item.precio || 0;
+            const precio = item.price || 0;  // Usa 'price' como en tu estructura
             const subtotal = precio * cantidad;
             totalCompra += subtotal;
-         itemsHtml += `
-    <div style="display: flex; align-items: center; gap: 15px; padding: 15px 0; border-bottom: 1px solid #f2f2f2;">
-        <div style="width: 60px; height: 60px; border-radius: 10px; overflow: hidden; background: #ffe4ec; display: flex; align-items: center; justify-content: center;">
-            ${item.imagen ? 
-                `<img src="${item.imagen}" alt="${item.nombre}" style="width: 100%; height: 100%; object-fit: cover;">` : 
-                `<span style="font-size: 24px;">💄</span>`
-            }
-        </div>
-        <div style="flex: 1;">
-            <div style="font-weight: bold; color: #333;">${item.nombre || 'Producto'}</div>
-            <div style="color: #666; font-size: 12px;">Cantidad: ${cantidad}</div>
-        </div>
-        <div style="color: #ff4d6d; font-weight: bold;">$${subtotal.toFixed(2)}</div>
-    </div>
-`;
+            
+            // Construir URL completa de la imagen
+            const imagenCompleta = item.img ? `${DOMINIO_BASE}/${item.img}` : null;
+            
+            itemsHtml += `
+                <div style="display: flex; align-items: center; gap: 15px; padding: 15px 0; border-bottom: 1px solid #f2f2f2;">
+                    <div style="width: 60px; height: 60px; border-radius: 10px; overflow: hidden; background: #ffe4ec; display: flex; align-items: center; justify-content: center;">
+                        ${imagenCompleta ? 
+                            `<img src="${imagenCompleta}" alt="${item.name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.parentElement.innerHTML='<span style=\"font-size:24px;\">💄</span>';">` : 
+                            `<span style="font-size: 24px;">💄</span>`
+                        }
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; color: #333;">${item.name || 'Producto'}</div>
+                        <div style="color: #666; font-size: 12px;">Cantidad: ${cantidad}</div>
+                    </div>
+                    <div style="color: #ff4d6d; font-weight: bold;">$${subtotal.toFixed(2)}</div>
+                </div>
+            `;
         });
     }
+    
+    // ... resto del código (envío, totales, etc.) ...
+
     
     const envioCosto = datosCompra.envio || 0;
     const totalFinal = totalCompra + envioCosto;
