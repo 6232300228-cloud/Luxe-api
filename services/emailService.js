@@ -332,8 +332,7 @@ const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
     if (datosCompra && datosCompra.productos && datosCompra.productos.length > 0) {
         datosCompra.productos.forEach(item => {
             const cantidad = item.cantidad || 1;
-            const precio = item.price || 0;
-            const subtotal = precio * cantidad;
+            const precio = item.precio || item.price || 0;            const subtotal = precio * cantidad;
             totalCompra += subtotal;
             
             let imagenUrl = null;
@@ -353,11 +352,7 @@ const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
             itemsHtml += `
                 <div style="display: flex; align-items: center; gap: 15px; padding: 15px 0; border-bottom: 1px solid #f2f2f2;">
                     <div style="width: 70px; height: 70px; border-radius: 10px; overflow: hidden; background: #ffe4ec; display: flex; align-items: center; justify-content: center;">
-                        ${imagenUrl ? 
-                            `<img src="${imagenUrl}" alt="${item.name}" style="width: 100%; height: 100%; object-fit: cover;" 
-                                  onerror="this.onerror=null; this.parentElement.innerHTML='<span style=\"font-size:32px;\">💄</span>';">` : 
-                            `<span style="font-size: 32px;">💄</span>`
-                        }
+                      
                     </div>
                     <div style="flex: 1;">
                         <div style="font-weight: bold; color: #333;">${item.name || 'Producto'}</div>
