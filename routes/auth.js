@@ -182,19 +182,30 @@ router.post('/login', async (req, res) => {
 });
 
 // ============================================
-// OBTENER DATOS DEL USUARIO ACTUAL
+// OBTENER TODOS LOS USUARIOS (SOLO ADMIN)
 // ============================================
-router.get('/me', verificarToken, async (req, res) => {
+router.get('/usuarios', verificarToken, async (req, res) => {
+    console.log('🔍 Endpoint /usuarios llamado');
+    
     try {
-        const usuario = await User.findById(req.usuarioId).select('-contraseña');
-        if (!usuario) {
-            return res.status(404).json({ error: 'Usuario no encontrado' });
+        // Verificar que el usuario sea admin
+        const usuarioActual = await User.findById(req.usuarioId);
+        console.log('Usuario actual:', usuarioActual?.correo, 'Rol:', usuarioActual?.role);
+        
+        if (!usuarioActual || usuarioActual.role !== 'admin') {
+            console.log('❌ Acceso denegado - No es admin');
+            return res.status(403).json({ error: 'Acceso denegado. Se requieren permisos de administrador.' });
         }
-        res.json(usuario);
+        
+        // Obtener todos los usuarios
+        const usuarios = await User.find({}).select('-contraseña').sort({ fechaRegistro: -1 });
+        
+        console.log(`✅ Admin ${usuarioActual.nombre} consultó ${usuarios.length} usuarios`);
+        
+        res.json(usuarios);
+        
     } catch (error) {
-        console.error('Error al obtener usuario:', error);
-        res.status(500).json({ error: 'Error al obtener datos del usuario' });
+        console.error('❌ Error al obtener usuarios:', error);
+        res.status(500).json({ error: 'Error al obtener la lista de usuarios' });
     }
 });
-
-module.exports = router;
