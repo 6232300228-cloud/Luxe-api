@@ -309,7 +309,7 @@ const enviarConfirmacionSuscripcion = async (emailUsuario) => {
   </div>
 </body>
 </html>
-    `;
+    `; 
     
     return enviarCorreo(emailUsuario, asunto, html);
 };
