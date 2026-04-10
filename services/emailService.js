@@ -336,7 +336,6 @@ const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
             const subtotal = precio * cantidad;
             totalCompra += subtotal;
             
-            // 🔥 Construcción de la URL
             let imagenUrl = null;
             if (item.img) {
                 if (item.img.startsWith('http')) {
@@ -347,11 +346,9 @@ const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
                 }
             }
             
-            // ✅ ESTOS SON LOS DEBUGS - Así tal cual los pones
-            console.log(`🖼️ Producto: ${item.name}`);
+            console.log(` Producto: ${item.name}`);
             console.log(`   Ruta BD: ${item.img}`);
             console.log(`   URL final: ${imagenUrl}`);
-            // Fin de los debugs
             
             itemsHtml += `
                 <div style="display: flex; align-items: center; gap: 15px; padding: 15px 0; border-bottom: 1px solid #f2f2f2;">
@@ -372,7 +369,6 @@ const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
         });
     }
     
-    // ... resto del código (envío, totales, etc.) ...
 
     
     const envioCosto = datosCompra.envio || 0;
