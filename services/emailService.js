@@ -358,7 +358,6 @@ const enviarConfirmacionCompra = async (emailCliente, datosCompra) => {
                         <div style="font-weight: bold; color: #333;">${item.name || 'Producto'}</div>
                         <div style="color: #666; font-size: 12px;">Cantidad: ${cantidad}</div>
                     </div>
-                    <div style="color: #ff4d6d; font-weight: bold;">$${subtotal.toFixed(2)}</div>
                 </div>
             `;
         });
