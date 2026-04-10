@@ -176,7 +176,7 @@ app.post("/api/crear-preferencia", async (req, res) => {
     }
 });
 
-app.post("/api/webhook-mercadopago", async (req, res) => {
+aapp.post("/api/webhook-mercadopago", async (req, res) => {
     try {
         const { type, data } = req.body;
         
@@ -186,7 +186,6 @@ app.post("/api/webhook-mercadopago", async (req, res) => {
             const paymentId = data.id;
             console.log('Procesando pago ID:', paymentId);
             
-            // Obtener detalles del pago desde Mercado Pago
             const accessToken = process.env.MP_ACCESS_TOKEN || "APP_USR-5562521962692930-030522-9080c61c1567cf8b93f52eb8a9dfa477-3247325848";
             
             const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
@@ -197,16 +196,31 @@ app.post("/api/webhook-mercadopago", async (req, res) => {
             });
             
             const payment = await response.json();
-            console.log('Detalles del pago:', payment);
+            console.log('Estado del pago:', payment.status);
+            console.log('External reference:', payment.external_reference);
             
             if (payment.status === 'approved') {
-                console.log('Pago aprobado para el pedido:', payment.external_reference);
+                const externalRef = payment.external_reference;
                 
-                // Aqui deberias guardar el pedido en tu base de datos
-                // Si tienes un modelo Order, crealo aqui
-                
-                // Por ahora, guardamos en localStorage via una respuesta
-                // Pero lo ideal es guardar en MongoDB
+                if (externalRef) {
+                    const Order = require('./models/Order');
+                    
+                    // Buscar el pedido por ID (puede ser el _id de MongoDB o el id que enviaste)
+                    const pedidoActualizado = await Order.findByIdAndUpdate(
+                        externalRef,
+                        { 
+                            estado: 'pagado',
+                            transaccionId: paymentId
+                        },
+                        { new: true }
+                    );
+                    
+                    if (pedidoActualizado) {
+                        console.log('Pedido actualizado a pagado:', pedidoActualizado._id);
+                    } else {
+                        console.log('Pedido no encontrado con ID:', externalRef);
+                    }
+                }
             }
         }
         
